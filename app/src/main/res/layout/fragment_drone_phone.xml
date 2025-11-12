@@ -11,11 +11,11 @@
         android:id="@+id/connectUserButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="120dp"
-        android:layout_marginTop="148dp"
-        android:text="Connect To User Phone"
+        android:layout_marginStart="36dp"
+        android:layout_marginTop="44dp"
         android:background="@drawable/outline"
         android:backgroundTint="@color/button_primary"
+        android:text="Connect To User Phone"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -23,20 +23,20 @@
         android:id="@+id/connectDroneButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="148dp"
-        android:layout_marginEnd="324dp"
-        android:text="Connect to Drone"
+        android:layout_marginTop="44dp"
+        android:layout_marginEnd="348dp"
         android:background="@drawable/outline"
         android:backgroundTint="@color/button_primary"
+        android:text="Connect to Drone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/droneActivityTextView"
-        android:layout_width="287dp"
-        android:layout_height="38dp"
+        android:layout_width="231dp"
+        android:layout_height="221dp"
         android:layout_marginTop="12dp"
-        android:text="TextView"
+        android:text=""
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.026"
         app:layout_constraintStart_toStartOf="parent"
@@ -46,10 +46,10 @@
         android:id="@+id/flightControllerSpinner"
         android:layout_width="176dp"
         android:layout_height="48dp"
-        android:layout_marginTop="140dp"
+        android:layout_marginTop="56dp"
         android:spinnerMode="dropdown"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.865"
+        app:layout_constraintHorizontal_bias="0.834"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -57,8 +57,8 @@
         android:id="@+id/textView2"
         android:layout_width="209dp"
         android:layout_height="50dp"
-        android:layout_marginTop="48dp"
-        android:layout_marginEnd="76dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="100dp"
         android:text="Select flight controller"
         android:textAlignment="center"
         android:textAllCaps="true"
@@ -66,16 +66,16 @@
         app:layout_constraintBottom_toTopOf="@+id/flightControllerSpinner"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.523" />
+        app:layout_constraintVertical_bias="0.0" />
 
     <androidx.camera.view.PreviewView
         android:id="@+id/previewView"
-        android:layout_width="470dp"
-        android:layout_height="176dp"
+        android:layout_width="504dp"
+        android:layout_height="228dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.795"
+        app:layout_constraintHorizontal_bias="0.891"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/connectDroneButton"
-        app:layout_constraintVertical_bias="0.307" />
+        app:layout_constraintVertical_bias="0.3" />
 </androidx.constraintlayout.widget.ConstraintLayout>

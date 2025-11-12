@@ -1,14 +1,14 @@
 package com.example.airsimapp.Activities;
 
 import android.os.Bundle;
+import android.view.View;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 
-
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
-import com.example.airsimapp.AirSimFlightController;
 import com.example.airsimapp.Fragments.AutopilotFragment;
 import com.example.airsimapp.Fragments.ManualFragment;
 import com.example.airsimapp.Orchestrator;
@@ -32,41 +32,63 @@ public class UserActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_user);
 
-        //AirSimFlightController flightController = new AirSimFlightController();
-        orchestrator = new Orchestrator(); // Create here to use in manual and autopilot fragments for now, will be on drone phone later
-        // Initialize fragments
+        orchestrator = new Orchestrator();
         manualFragment = new ManualFragment();
         autopilotFragment = new AutopilotFragment();
 
-// Check if the fragments are already added
         if (savedInstanceState == null) {
-            // Add the fragments but don't show any initially
             fragmentTransaction = getSupportFragmentManager().beginTransaction();
             fragmentTransaction.add(R.id.fragment_container, manualFragment);
             fragmentTransaction.add(R.id.fragment_container, autopilotFragment);
-            fragmentTransaction.hide(autopilotFragment); // Hide the autopilot fragment initially
+            fragmentTransaction.hide(autopilotFragment);
             fragmentTransaction.commit();
         }
     }
 
-    // Function to switch between Autopilot & Manual Control
     public void switchFragment(Fragment newFragment) {
         fragmentTransaction = getSupportFragmentManager().beginTransaction();
 
-        // Show the new fragment
         fragmentTransaction.show(newFragment);
 
-        // Hide the other fragment
-        if (newFragment instanceof ManualFragment) { // if fragment passed through is userFragment, hide the autopilot
+        if (newFragment instanceof ManualFragment) {
             fragmentTransaction.hide(autopilotFragment);
-        } else if (newFragment instanceof AutopilotFragment) { // if fragment passed through is AutopilotFragment, hide the UserPhoneFragment
+        } else if (newFragment instanceof AutopilotFragment) {
             fragmentTransaction.hide(manualFragment);
         }
 
-        fragmentTransaction.addToBackStack(null); // Optional if you want the ability to go back
+        fragmentTransaction.addToBackStack(null);
         fragmentTransaction.commit();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        hideSystemUI();
+    }
+
+    private void hideSystemUI() {
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().hide();
+        }
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            getWindow().setDecorFitsSystemWindows(false);
+            WindowInsetsController controller = getWindow().getInsetsController();
+            if(controller != null) {
+                controller.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+                controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+            }
+        } else {
+            //noinspection deprecation
+            getWindow().getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                            | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_FULLSCREEN);
+        }
     }
 }

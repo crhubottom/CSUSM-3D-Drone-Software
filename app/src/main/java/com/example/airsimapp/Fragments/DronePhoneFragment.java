@@ -1,9 +1,26 @@
 package com.example.airsimapp.Fragments;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.ImageFormat;
+import android.graphics.Rect;
+import android.graphics.YuvImage;
+import android.media.Image;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.Spinner;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-
 import androidx.annotation.OptIn;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ExperimentalGetImage;
@@ -14,29 +31,6 @@ import androidx.camera.view.PreviewView;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
-
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.ImageFormat;
-import android.graphics.Rect;
-import android.graphics.YuvImage;
-import android.media.Image;
-import android.os.Bundle;
-
-import android.util.Log;
-import android.view.LayoutInflater;
-
-import android.view.View;
-import android.view.ViewGroup;
-
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.Spinner;
-import android.widget.TextView;
-import android.widget.Toast;
-
-import com.example.airsimapp.Activities.UserActivity;
 import com.example.airsimapp.AirSimFlightController;
 import com.example.airsimapp.R;
 import com.example.airsimapp.WebSocketClientTesting;
@@ -46,10 +40,13 @@ import com.google.common.util.concurrent.ListenableFuture;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 
-import okhttp3.WebSocket;
 import okhttp3.Response;
+import okhttp3.WebSocket;
 
 public class DronePhoneFragment extends Fragment {
+
+    private static final int REQUEST_CODE_PERMISSIONS = 10;
+    private static final String[] REQUIRED_PERMISSIONS = {Manifest.permission.CAMERA};
 
     private WebSocket websocketTest;
 
@@ -110,10 +107,9 @@ public class DronePhoneFragment extends Fragment {
                     flightController.setMessageListener(message -> {
                         if (webSocket != null) {
                             webSocket.sendMessage(message);
-                            //requireActivity().runOnUiThread(() -> output.setText("Response from drone: " + message));
                         }
                     });
-                } // add more flightControllers here
+                }
             }
 
             @Override
@@ -121,22 +117,6 @@ public class DronePhoneFragment extends Fragment {
                 // Do nothing
             }
         });
-        // Default Spinner selection
-
-        // Sends messages received from the user phone directly to the drone
-//        webSocket.setWebSocketMessageListener(message -> {
-//            if (output != null) {
-//
-//                command = message;
-//
-//                requireActivity().runOnUiThread(() -> output.setText(message)); // UI update
-//                if (flightController != null) {
-//                    flightController.sendToDrone(command);
-//                } else {
-//                    Log.e("DronePhoneFragment", "flightController is null!");
-//                }
-//            }
-//        });
 
         webSocket.setWebSocketMessageListener(new WebSocketClientTesting.WebSocketMessageListener() {
             @Override
@@ -162,16 +142,40 @@ public class DronePhoneFragment extends Fragment {
             }
         });
 
+        if (allPermissionsGranted()) {
+            startCamera();
+        } else {
+            requestPermissions(REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS);
+        }
+
         return rootView;
     }
 
+    private boolean allPermissionsGranted() {
+        for (String permission : REQUIRED_PERMISSIONS) {
+            if (ContextCompat.checkSelfPermission(requireContext(), permission) != PackageManager.PERMISSION_GRANTED) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        // after you’ve inflated and found previewView:
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_CODE_PERMISSIONS) {
+            if (allPermissionsGranted()) {
+                startCamera();
+            } else {
+                Toast.makeText(requireContext(), "Permissions not granted by the user.", Toast.LENGTH_SHORT).show();
+                // Optionally, disable camera-related functionality
+            }
+        }
+    }
+
+    private void startCamera() {
         cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext());
-        cameraProviderFuture.addListener(this::bindCameraUseCases,
-                ContextCompat.getMainExecutor(requireContext()));
+        cameraProviderFuture.addListener(this::bindCameraUseCases, ContextCompat.getMainExecutor(requireContext()));
     }
 
     @OptIn(markerClass = ExperimentalGetImage.class)
@@ -179,15 +183,11 @@ public class DronePhoneFragment extends Fragment {
         try {
             ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
 
-            // 1) Preview (optional—if you just want to send frames, you can omit this)
             Preview preview = new Preview.Builder().build();
-//            preview.setSurfaceProvider(previewView.getSurfaceProvider());
+            preview.setSurfaceProvider(previewView.getSurfaceProvider());
 
-            // 2) ImageAnalysis to get frames
             ImageAnalysis analysis = new ImageAnalysis.Builder()
-                    .setBackpressureStrategy(
-                            ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST
-                    )
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                     .build();
 
             analysis.setAnalyzer(
@@ -195,18 +195,14 @@ public class DronePhoneFragment extends Fragment {
                     imageProxy -> {
                         Image mediaImage = imageProxy.getImage();
                         if (mediaImage != null) {
-                            // send over your websocket
                             sendFrame(mediaImage);
-                            //webSocket.sendMessage("Sending a frame");
                         }
                         imageProxy.close();
                     }
             );
 
-            // Unbind any previous use-cases before rebinding
             cameraProvider.unbindAll();
 
-            // Bind to lifecycle, so it automatically starts/stops with the fragment
             cameraProvider.bindToLifecycle(
                     this,
                     CameraSelector.DEFAULT_BACK_CAMERA,
@@ -224,23 +220,17 @@ public class DronePhoneFragment extends Fragment {
     }
 
     private void connectToDrone(){
-        flightController.connect();
+        if (flightController != null) {
+            flightController.connect();
+        }
     }
 
     public void sendFrame(Image image) {
         if (webSocket == null || image == null) return;
 
-        // Convert YUV_420_888 → JPEG in one shot
         byte[] jpeg = yuvToJpeg(image, 50);
         webSocket.sendByte(jpeg);
     }
-
-//    private Bitmap imageToBitmap(Image image) {
-//        ByteBuffer buffer = image.getPlanes()[0].getBuffer();
-//        byte[] bytes = new byte[buffer.remaining()];
-//        buffer.get(bytes);
-//        return BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-//    }
 
     private byte[] yuvToJpeg(Image image, int quality) {
         int width = image.getWidth();
@@ -250,15 +240,11 @@ public class DronePhoneFragment extends Fragment {
         ByteBuffer vBuffer = image.getPlanes()[2].getBuffer(); // V
 
         int ySize = yBuffer.remaining();
-        int uSize = uBuffer.remaining();
-        int vSize = vBuffer.remaining();
 
         byte[] nv21 = new byte[width * height * 3 / 2];
 
-        // Copy Y values
         yBuffer.get(nv21, 0, ySize);
 
-        // Interleave U and V values correctly
         int uvPixelStride = image.getPlanes()[1].getPixelStride();
         int uvRowStride = image.getPlanes()[1].getRowStride();
         byte[] uBytes = new byte[uBuffer.remaining()];
@@ -270,19 +256,17 @@ public class DronePhoneFragment extends Fragment {
         for (int row = 0; row < height / 2; row++) {
             for (int col = 0; col < width / 2; col++) {
                 int uvIndex = row * uvRowStride + col * uvPixelStride;
-                nv21[uvPos++] = vBytes[uvIndex]; // V first in NV21
-                nv21[uvPos++] = uBytes[uvIndex]; // Then U
+                if (uvIndex < vBytes.length && uvIndex < uBytes.length) {
+                    nv21[uvPos++] = vBytes[uvIndex]; // V first in NV21
+                    nv21[uvPos++] = uBytes[uvIndex]; // Then U
+                }
             }
         }
 
-        // Now compress
         YuvImage yuvImage = new YuvImage(nv21, ImageFormat.NV21, width, height, null);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         yuvImage.compressToJpeg(new Rect(0, 0, width, height), quality, baos);
 
         return baos.toByteArray();
     }
-
-
-
 }

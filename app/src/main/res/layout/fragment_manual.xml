@@ -1,237 +1,215 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/constraintLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- Start Button -->
+    <!-- Camera preview fills the screen -->
     <ImageView
         android:id="@+id/remoteCameraView"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
         android:scaleType="centerCrop"
-        android:adjustViewBounds="true"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentEnd="true" />
-    <!-- Takeoff Button -->
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- Top row buttons -->
+    <Button
+        android:id="@+id/autoPilotButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="12dp"
+        android:background="@drawable/outline_t"
+        android:text="Autopilot"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"/>
 
     <Button
         android:id="@+id/start"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="12dp"
         android:background="@drawable/outline_t"
         android:text="Start WebSocket"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.499"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"/>
 
     <Button
         android:id="@+id/takeoff"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Takeoff"
+        android:layout_marginTop="8dp"
         android:background="@drawable/outline_t"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.382"
+        android:text="Takeoff"
+        app:layout_constraintTop_toBottomOf="@id/start"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/start" />
+        app:layout_constraintEnd_toStartOf="@id/land"/>
 
-    <!-- Land Button -->
-
-    <!-- Button Layout (Wrapper for all buttons) -->
     <Button
         android:id="@+id/land"
-        android:layout_width="89dp"
-        android:layout_height="44dp"
-        android:text="Land"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
         android:background="@drawable/outline_t"
         android:backgroundTint="@color/button_critical"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.232"
-        app:layout_constraintStart_toEndOf="@+id/takeoff"
-        app:layout_constraintTop_toBottomOf="@+id/start" />
+        android:text="Land"
+        app:layout_constraintTop_toBottomOf="@id/start"
+        app:layout_constraintStart_toEndOf="@id/takeoff"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
-    <!-- Output TextView -->
-
+    <!-- Controls wrapper: MATCH-CONSTRAINTS (0dp) so it always fits -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/button_layout"
-        android:layout_width="877dp"
-        android:layout_height="271dp"
-        android:layout_marginTop="8dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginHorizontal="12dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="16dp"
+        app:layout_constraintTop_toBottomOf="@id/takeoff"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/takeoff">
+        app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- Forward Button -->
+        <!-- Guidelines to form two equal control columns -->
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/gLeft"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintGuide_percent="0.25"
+            android:orientation="vertical" />
 
-        <!-- Go Up Button -->
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/gCenter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintGuide_percent="0.5"
+            android:orientation="vertical" />
 
-        <!-- Backward Button -->
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/gRight"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:layout_constraintGuide_begin="734dp" />
 
-        <!-- Go Down Button -->
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/gTop"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintGuide_percent="0.05"
+            android:orientation="horizontal" />
 
-        <!-- Left Button -->
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/gMid"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintGuide_percent="0.5"
+            android:orientation="horizontal" />
 
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/gBottom"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintGuide_percent="0.95"
+            android:orientation="horizontal" />
+
+        <!-- LEFT CLUSTER (forward / back + rotate) -->
         <Button
             android:id="@+id/forward"
-            android:layout_width="79dp"
-            android:layout_height="83dp"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
             android:background="@drawable/arrow"
             android:rotation="180"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.159"
+            app:layout_constraintTop_toTopOf="@id/gTop"
+            app:layout_constraintBottom_toTopOf="@id/gMid"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.062" />
-
-        <!-- Right Button -->
-
-        <!-- Left Button -->
-
-        <!-- Right Button -->
-
-        <Button
-            android:id="@+id/go_up"
-            android:layout_width="79dp"
-            android:layout_height="83dp"
-            android:background="@drawable/uparrow"
-            android:text="Up"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.837"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="0.063" />
+            app:layout_constraintEnd_toStartOf="@id/gCenter"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintVertical_bias="0.0"/>
 
         <Button
             android:id="@+id/backward"
-            android:layout_width="79dp"
-            android:layout_height="83dp"
-            android:layout_marginTop="80dp"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
             android:background="@drawable/arrow"
-            app:layout_constraintEnd_toStartOf="@+id/Rright"
-            app:layout_constraintHorizontal_bias="1.0"
+            app:layout_constraintTop_toBottomOf="@id/gMid"
+            app:layout_constraintBottom_toBottomOf="@id/gBottom"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/forward" />
-
-        <Button
-            android:id="@+id/go_down"
-            android:layout_width="79dp"
-            android:layout_height="83dp"
-            android:layout_marginTop="76dp"
-            android:background="@drawable/arrow"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintStart_toEndOf="@+id/left"
-            app:layout_constraintTop_toBottomOf="@+id/go_up" />
+            app:layout_constraintEnd_toStartOf="@id/gCenter"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintVertical_bias="1.0"/>
 
         <Button
             android:id="@+id/Rleft"
-            android:layout_width="83dp"
-            android:layout_height="79dp"
-            android:layout_marginTop="96dp"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
             android:background="@drawable/leftrotate"
-            app:layout_constraintEnd_toStartOf="@+id/forward"
-            app:layout_constraintHorizontal_bias="1.0"
+            app:layout_constraintTop_toTopOf="@id/gMid"
+            app:layout_constraintBottom_toBottomOf="@id/gMid"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintEnd_toStartOf="@id/forward"
+            app:layout_constraintHorizontal_bias="1.0"/>
 
         <Button
             android:id="@+id/Rright"
-            android:layout_width="83dp"
-            android:layout_height="79dp"
-            android:layout_marginTop="96dp"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
             android:background="@drawable/rightrotate"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintStart_toEndOf="@+id/forward"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="@id/gMid"
+            app:layout_constraintBottom_toBottomOf="@id/gMid"
+            app:layout_constraintStart_toEndOf="@id/forward"
+            app:layout_constraintEnd_toStartOf="@id/gCenter"
+            app:layout_constraintHorizontal_bias="0.0"/>
+
+        <!-- RIGHT CLUSTER (D-pad style) -->
+        <Button
+            android:id="@+id/go_up"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:background="@drawable/uparrow"
+            app:layout_constraintStart_toStartOf="@id/gCenter"
+            app:layout_constraintEnd_toStartOf="@id/gRight"
+            app:layout_constraintTop_toTopOf="@id/gTop"
+            app:layout_constraintBottom_toTopOf="@id/gMid"
+            app:layout_constraintHorizontal_bias="0.5"/>
 
         <Button
             android:id="@+id/left"
-            android:layout_width="83dp"
-            android:layout_height="79dp"
-            android:layout_marginTop="100dp"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
             android:background="@drawable/arrow"
             android:rotation="90"
-            app:layout_constraintEnd_toStartOf="@+id/go_up"
-            app:layout_constraintHorizontal_bias="1.0"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="@id/gMid"
+            app:layout_constraintBottom_toBottomOf="@id/gMid"
+            app:layout_constraintStart_toStartOf="@id/gCenter"
+            app:layout_constraintEnd_toStartOf="@id/go_up"
+            app:layout_constraintHorizontal_bias="1.0"/>
 
         <Button
             android:id="@+id/right"
-            android:layout_width="83dp"
-            android:layout_height="79dp"
-            android:layout_marginTop="100dp"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
             android:background="@drawable/arrow"
             android:rotation="-90"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintStart_toEndOf="@+id/go_up"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="@id/gMid"
+            app:layout_constraintBottom_toBottomOf="@id/gMid"
+            app:layout_constraintStart_toEndOf="@id/go_up"
+            app:layout_constraintEnd_toStartOf="@id/gRight"
+            app:layout_constraintHorizontal_bias="0.0"/>
 
+        <Button
+            android:id="@+id/go_down"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:background="@drawable/arrow"
+            app:layout_constraintStart_toStartOf="@id/gCenter"
+            app:layout_constraintEnd_toStartOf="@id/gRight"
+            app:layout_constraintTop_toBottomOf="@id/gMid"
+            app:layout_constraintBottom_toBottomOf="@id/gBottom"
+            app:layout_constraintHorizontal_bias="0.5"/>
     </androidx.constraintlayout.widget.ConstraintLayout>
-
-<!--    <TextView-->
-<!--        android:id="@+id/speedTextView"-->
-<!--        android:layout_width="88dp"-->
-<!--        android:layout_height="29dp"-->
-<!--        android:layout_marginStart="48dp"-->
-<!--        android:layout_marginTop="28dp"-->
-<!--        android:text="@string/speed_display"-->
-<!--        android:textSize="15sp"-->
-<!--        android:textColor="@color/status_ok"-->
-<!--        app:layout_constraintEnd_toEndOf="parent"-->
-<!--        app:layout_constraintHorizontal_bias="0.651"-->
-<!--        app:layout_constraintStart_toEndOf="@+id/autoPilotButton"-->
-<!--        app:layout_constraintTop_toTopOf="parent" />-->
-
-<!--    &lt;!&ndash; Switch Screens Button &ndash;&gt;-->
-
-<!--    <TextView-->
-<!--        android:id="@+id/gpsTextView"-->
-<!--        android:layout_width="200dp"-->
-<!--        android:layout_height="28dp"-->
-<!--        android:layout_marginTop="28dp"-->
-<!--        android:text="@string/gps_display"-->
-<!--        android:textSize="15sp"-->
-<!--        android:textColor="@color/status_ok"-->
-<!--        app:layout_constraintEnd_toEndOf="parent"-->
-<!--        app:layout_constraintHorizontal_bias="0.2"-->
-<!--        app:layout_constraintStart_toEndOf="@+id/speedTextView"-->
-<!--        app:layout_constraintTop_toTopOf="parent" />-->
-
-<!--    <TextView-->
-<!--        android:id="@+id/HeadingViewText"-->
-<!--        android:layout_width="87dp"-->
-<!--        android:layout_height="30dp"-->
-<!--        android:layout_marginTop="56dp"-->
-<!--        android:text="Heading:"-->
-<!--        android:textSize="15sp"-->
-<!--        android:textColor="@color/status_ok"-->
-<!--        app:layout_constraintEnd_toEndOf="parent"-->
-<!--        app:layout_constraintHorizontal_bias="0.839"-->
-<!--        app:layout_constraintStart_toStartOf="parent"-->
-<!--        app:layout_constraintTop_toTopOf="parent" />-->
-
-    <Button
-        android:id="@+id/autoPilotButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:background="@drawable/outline_t"
-        android:text="Autopilot"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

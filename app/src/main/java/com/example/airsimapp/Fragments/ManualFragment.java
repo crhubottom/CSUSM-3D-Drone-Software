@@ -1,55 +1,38 @@
 package com.example.airsimapp.Fragments;
 
 import android.Manifest;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-
-import androidx.camera.core.Camera;
-import androidx.camera.core.CameraSelector;
-import androidx.camera.lifecycle.ProcessCameraProvider;
-import androidx.camera.view.PreviewView;
-import androidx.core.content.ContextCompat;
-import androidx.fragment.app.Fragment;
-
-
-import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-
 import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
+import androidx.fragment.app.Fragment;
 
 import com.example.airsimapp.Activities.UserActivity;
-import com.example.airsimapp.AirSimFlightController;
 import com.example.airsimapp.R;
 import com.example.airsimapp.WebSocketClientTesting;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.example.airsimapp.flightControllerInterface;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
+
 import okhttp3.Response;
 
 public class ManualFragment extends Fragment  {
@@ -63,7 +46,7 @@ public class ManualFragment extends Fragment  {
     private Runnable commandRunnable;
     //private Orchestrator orchestrator;
 
-// These help us loop the commands being sent
+    // These help us loop the commands being sent
     private static final long COMMAND_INTERVAL = 100;
     private final Handler commandHandler = new Handler(Looper.getMainLooper());
     public Date date = Calendar.getInstance().getTime();
@@ -205,7 +188,7 @@ public class ManualFragment extends Fragment  {
             UserActivity.getOrchestrator().processCommand("manual,stop", ManualFragment.this::sendCommand); // Send stop command
         }
     }
-//    private void startCamera() {
+    //    private void startCamera() {
 //        ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext());
 //        cameraProviderFuture.addListener(() -> {
 //            try {
@@ -235,7 +218,7 @@ public class ManualFragment extends Fragment  {
     public void onDestroy() {
         super.onDestroy();
         stopCommandLoop();
-        cameraExecutor.shutdown();
+        //cameraExecutor.shutdown();
     }
 
     @Override
