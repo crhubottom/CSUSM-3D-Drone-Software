@@ -1,5 +1,4 @@
 package com.example.airsimapp;
-import com.example.airsimapp.Activities.UserActivity;
 
 import java.util.Calendar;
 

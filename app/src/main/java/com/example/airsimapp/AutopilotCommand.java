@@ -1,7 +1,5 @@
 package com.example.airsimapp;
 
-import java.util.ArrayList;
-
 abstract public class AutopilotCommand {
     private String id;
     private int hourEndTime;

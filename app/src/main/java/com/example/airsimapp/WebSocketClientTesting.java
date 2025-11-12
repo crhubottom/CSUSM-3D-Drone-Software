@@ -2,18 +2,19 @@ package com.example.airsimapp;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
 import okio.ByteString;
-import android.os.Handler;
-import android.os.Looper;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class WebSocketClientTesting {
 

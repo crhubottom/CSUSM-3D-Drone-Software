@@ -3,7 +3,11 @@ package com.example.airsimapp;
 import android.util.Log;
 import android.widget.TextView;
 
-import okhttp3.*;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.WebSocket;
+import okhttp3.WebSocketListener;
 
 public class AirSimFlightController implements flightControllerInterface {
     private static final String TAG = "AirSimFlightController";
@@ -25,7 +29,7 @@ public class AirSimFlightController implements flightControllerInterface {
 
     @Override
     public void connect() {
-        Request request = new Request.Builder().url("ws://10.0.2.2:8765").build();
+        Request request = new Request.Builder().url("ws://192.168.1.242:8766").build();
         webSocket = client.newWebSocket(request, new EchoWebSocketListener());
     }
 

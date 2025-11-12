@@ -10,7 +10,6 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 
 public class CommandAdapter extends RecyclerView.Adapter<CommandAdapter.CommandViewHolder> {

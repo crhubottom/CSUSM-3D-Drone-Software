@@ -1,7 +1,7 @@
 package com.example.airsimapp;
+
 import android.util.Log;
 
-import java.lang.Math;
 import java.util.Calendar;
 
 public class HeadingAndSpeed extends AutopilotCommand{

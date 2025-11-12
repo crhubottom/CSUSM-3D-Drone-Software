@@ -216,7 +216,7 @@ public class DronePhoneFragment extends Fragment {
     }
 
     private void connectToUser(){
-        webSocket.connect("ws://10.0.2.2:8766");
+        webSocket.connect("ws://192.168.1.242:8766");
     }
 
     private void connectToDrone(){

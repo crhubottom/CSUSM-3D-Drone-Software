@@ -1,7 +1,5 @@
 package com.example.airsimapp;
 
-import org.json.JSONObject;
-
 public class Manual {
     public String translateCommand(String userAction, float yawRate, float velocity, float commandTime) {
         String action = "";

@@ -2,7 +2,8 @@
 <network-security-config>
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">localhost</domain>
-        <domain includeSubdomains="true">192.168.1.90</domain> # Jaydens IPv4 Address
+        <domain includeSubdomains="true">192.168.1.249</domain> # Chases Laptop IPv4 Address
+        <domain includeSubdomains="true">192.168.1.242</domain> # Chases PC IPv4 Address
         <domain includeSubdomains="true">127.0.0.1</domain>
         <domain includeSubdomains="true">172.25.153.8</domain>
         <domain includeSubdomains="true">10.0.2.2</domain>
