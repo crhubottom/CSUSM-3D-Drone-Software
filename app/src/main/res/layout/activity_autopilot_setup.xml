@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".AutopilotSetupActivity">
+
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline25"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.25" />
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline66"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.66" />
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline50"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.50" />
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline75"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.75" />
+
+
+    <TextView
+        android:id="@+id/gps"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:layout_marginStart="16dp"
+        android:text="GPS Coords"
+        app:layout_constraintEnd_toStartOf="@id/LatText"
+        app:layout_constraintHorizontal_chainStyle="spread_inside"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintVertical_bias="0.0"
+        app:layout_constraintBaseline_toBaselineOf="@id/LatText"/>
+
+    <EditText
+        android:id="@+id/LatText"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:hint="Latitude"
+        app:layout_constraintStart_toEndOf="@id/gps"
+        app:layout_constraintEnd_toStartOf="@id/LongText"
+        app:layout_constraintTop_toTopOf="@id/guideline25"
+        app:layout_constraintBottom_toBottomOf="@id/guideline25"
+        android:inputType="numberDecimal|numberSigned"/>
+
+
+    <EditText
+        android:id="@+id/LongText"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:hint="Longitude"
+        app:layout_constraintStart_toEndOf="@id/LatText"
+        app:layout_constraintEnd_toStartOf="@id/AltText"
+        app:layout_constraintTop_toTopOf="@id/guideline25"
+        app:layout_constraintBottom_toBottomOf="@id/guideline25"
+        android:inputType="numberDecimal|numberSigned"/>
+
+
+    <EditText
+        android:id="@+id/AltText"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:hint="Altitude"
+        app:layout_constraintStart_toEndOf="@id/LongText"
+        app:layout_constraintEnd_toStartOf="@id/GPSButton"
+        app:layout_constraintTop_toTopOf="@id/guideline25"
+        app:layout_constraintBottom_toBottomOf="@id/guideline25"
+        android:inputType="numberDecimal|numberSigned"/>
+
+    <Button
+        android:id="@+id/GPSButton"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:text="ADD"
+        app:layout_constraintStart_toEndOf="@id/AltText"
+        app:layout_constraintTop_toTopOf="@id/guideline25"
+        app:layout_constraintBottom_toBottomOf="@id/guideline25"
+        app:layout_constraintEnd_toEndOf="@id/guideline66"/>
+
+    <Button
+        android:id="@+id/backButtonAutopilot"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/startButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="START"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="@+id/guideline66"
+        app:layout_constraintTop_toTopOf="@+id/guideline75" />
+
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="83dp"
+        android:layout_height="39dp"
+        android:layout_margin="20dp"
+        android:alpha="1"
+        android:elevation="5dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@android:drawable/ic_menu_revert" />
+
+    <TextView
+        android:id="@+id/headingLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:text="Heading and Speed"
+        android:layout_marginStart="16dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/directionInput"
+        app:layout_constraintBaseline_toBaselineOf="@id/directionInput"
+        app:layout_constraintHorizontal_chainStyle="spread_inside" />
+
+    <EditText
+        android:id="@+id/directionInput"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:hint="0–359°"
+        android:inputType="number"
+        app:layout_constraintBottom_toBottomOf="@id/guideline50"
+        app:layout_constraintEnd_toStartOf="@id/speedInput"
+        app:layout_constraintStart_toEndOf="@id/headingLabel"
+        app:layout_constraintTop_toTopOf="@id/guideline50" />
+
+    <EditText
+        android:id="@+id/speedInput"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:hint="Speed"
+        android:inputType="numberDecimal"
+        app:layout_constraintStart_toEndOf="@id/directionInput"
+        app:layout_constraintEnd_toStartOf="@id/timeInput"
+        app:layout_constraintTop_toTopOf="@id/guideline50"
+        app:layout_constraintBottom_toBottomOf="@id/guideline50" />
+
+    <EditText
+        android:id="@+id/timeInput"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:hint="Time (s)"
+        app:layout_constraintBottom_toBottomOf="@id/guideline50"
+        app:layout_constraintEnd_toStartOf="@id/headingButton"
+        app:layout_constraintStart_toEndOf="@id/speedInput"
+        app:layout_constraintTop_toTopOf="@id/guideline50" />
+
+    <Button
+        android:id="@+id/headingButton"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:text="ADD"
+        app:layout_constraintBottom_toBottomOf="@id/guideline50"
+        app:layout_constraintEnd_toEndOf="@id/guideline66"
+        app:layout_constraintStart_toEndOf="@id/timeInput"
+        app:layout_constraintTop_toTopOf="@id/guideline50" />
+
+    <TextView
+        android:id="@+id/patternLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:text="Pattern"
+        android:layout_marginStart="16dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/patternSpinner"
+        app:layout_constraintBaseline_toBaselineOf="@id/patternSpinner"
+        app:layout_constraintHorizontal_chainStyle="spread_inside" />
+
+    <Spinner
+        android:id="@+id/patternSpinner"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        app:layout_constraintStart_toEndOf="@id/patternLabel"
+        app:layout_constraintEnd_toStartOf="@id/patternTime"
+        app:layout_constraintTop_toTopOf="@id/guideline75"
+        app:layout_constraintBottom_toBottomOf="@id/guideline75"
+        />
+
+    <EditText
+        android:id="@+id/patternTime"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:hint="Time (s)"
+        android:inputType="numberDecimal"
+        app:layout_constraintStart_toEndOf="@id/patternSpinner"
+        app:layout_constraintEnd_toStartOf="@id/patternButton"
+        app:layout_constraintTop_toTopOf="@id/guideline75"
+        app:layout_constraintBottom_toBottomOf="@id/guideline75" />
+
+    <Button
+        android:id="@+id/patternButton"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:text="ADD"
+        app:layout_constraintBottom_toBottomOf="@id/guideline75"
+        app:layout_constraintEnd_toEndOf="@id/guideline66"
+        app:layout_constraintStart_toEndOf="@id/patternTime"
+        app:layout_constraintTop_toTopOf="@id/guideline75" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:padding="8dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/startButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/guideline66"
+        />
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>
