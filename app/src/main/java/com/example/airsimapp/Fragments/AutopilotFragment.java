@@ -210,16 +210,18 @@ public class AutopilotFragment extends Fragment {
 
         return view;
     }
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
 
-        // Get a reference to the TextView
-        speedTextView = view.findViewById(R.id.speedTextView);
-        headingTextView = view.findViewById(R.id.HeadingViewText);
-        gpsTextView = view.findViewById(R.id.gpsTextView);
-        startSpeedUpdates();
-    }
+    // ********** NO SUPPORT IN NEW UI ********************
+//    @Override
+//    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+//        super.onViewCreated(view, savedInstanceState);
+//
+//        // Get a reference to the TextView
+//        speedTextView = view.findViewById(R.id.speedTextView);
+//        headingTextView = view.findViewById(R.id.HeadingViewText);
+//        gpsTextView = view.findViewById(R.id.gpsTextView);
+//        startSpeedUpdates();
+//    }
 
     private void updateUI() {
         String speedText = getString(R.string.speed_display, getCurrentSpeed());
