@@ -34,7 +34,14 @@
             android:exported="false"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"
             android:screenOrientation="landscape"/>
-
+        <activity
+            android:name=".Activities.AutopilotActivity"
+            android:exported="false"
+            android:screenOrientation="landscape" />
+        <activity
+            android:name=".Activities.DroneDuringFlight"
+            android:exported="false"
+            android:screenOrientation="landscape" />
         <activity
             android:name=".Activities.UserActivity"
             android:exported="false"
@@ -42,10 +49,21 @@
             android:screenOrientation="landscape"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
         <activity
-            android:name=".Activities.MainActivity"
+            android:name=".Activities.AutopilotSetupActivity"
+            android:exported="false"
+            android:screenOrientation="landscape" />
+        <activity
+            android:name=".Activities.ManualControlActivity"
+            android:exported="false"
+            android:screenOrientation="landscape" />
+        <activity
+            android:name=".Activities.DroneSetupActivity"
+            android:exported="false"
+            android:screenOrientation="landscape" />
+        <activity
+            android:name=".Activities.StartupActivity"
             android:exported="true"
-            android:screenOrientation="landscape"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+            android:screenOrientation="landscape">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

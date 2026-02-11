@@ -1,5 +1,7 @@
 package com.example.airsimapp;
 
+import static com.example.airsimapp.Fragments.DronePhoneFragment.ip;
+
 import android.util.Log;
 
 public class Orchestrator {
@@ -28,7 +30,7 @@ public class Orchestrator {
 
     public void connectToPhone() {
         if (!isConnected) {
-            webSocket.connect("ws://192.168.1.242:8766");
+            webSocket.connect(ip);
             isConnected = true;
         }
 //        webSocket.setWebSocketMessageListener(new WebSocketClientTesting.WebSocketMessageListener() {

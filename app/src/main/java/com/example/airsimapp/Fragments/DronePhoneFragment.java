@@ -1,6 +1,5 @@
 package com.example.airsimapp.Fragments;
 
-import static com.example.airsimapp.WebSocketClient.ip;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
@@ -48,6 +47,7 @@ import okhttp3.WebSocket;
 public class DronePhoneFragment extends Fragment {
 
     private static final int REQUEST_CODE_PERMISSIONS = 10;
+    public static final String ip = "192.168.1.242";
     private static final String[] REQUIRED_PERMISSIONS = {Manifest.permission.CAMERA, Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION};
 
     private WebSocket websocketTest;
