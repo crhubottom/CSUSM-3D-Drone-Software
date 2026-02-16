@@ -64,7 +64,7 @@ public class AutopilotFragment extends Fragment {
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_autopilot, container, false);
 
-
+/*
         commandRecyclerView = view.findViewById(R.id.commandRecyclerView);
         commandRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         commandAdapter = new CommandAdapter(UserActivity.getOrchestrator().getAutopilot().getCommandQueue(),
@@ -91,6 +91,7 @@ public class AutopilotFragment extends Fragment {
         remoteView = view.findViewById(R.id.autopilotPreviewView);
         Spinner patternSpinner = view.findViewById(R.id.pattern);
         String[] patternOptions = {"RaceTrack", "Circle", "Figure8"};
+
         ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item, patternOptions);
         spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         patternSpinner.setAdapter(spinnerAdapter);
@@ -110,6 +111,8 @@ public class AutopilotFragment extends Fragment {
         startButton.setOnClickListener(v -> {
             handler.post(commandSenderRunnable); // start sending
         });
+
+
 
 
 
@@ -189,6 +192,8 @@ public class AutopilotFragment extends Fragment {
             }
         });
 
+ */
+
 
 
         // This will listen for messages from the drone websocket
@@ -223,16 +228,16 @@ public class AutopilotFragment extends Fragment {
 
     private void updateUI() {
         String speedText = getString(R.string.speed_display, getCurrentSpeed());
-        speedTextView.setText(speedText);
+//        speedTextView.setText(speedText);
         //update heading
         String headingText = getString(R.string.heading_display, getCurrentHeading());
-        headingTextView.setText(headingText);
+        //headingTextView.setText(headingText);
 
         //update GPS
         if(currentGPS != null)
         {
             String gpsText = getString(R.string.gps_display, getCurrentGPS().getLatitude(), getCurrentGPS().getLongitude(), getCurrentGPS().getAltitude());
-            gpsTextView.setText(gpsText);
+            //gpsTextView.setText(gpsText);
         }
     }
     private double getCurrentSpeed() {
@@ -425,4 +430,6 @@ public class AutopilotFragment extends Fragment {
             stopSpeedUpdates();
         }
     }
+
+
 }

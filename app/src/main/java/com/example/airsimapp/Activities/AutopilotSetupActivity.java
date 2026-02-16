@@ -31,7 +31,7 @@ public class AutopilotSetupActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         getSupportActionBar().hide();
-        setContentView(R.layout.activity_autopilot_setup);
+        setContentView(R.layout.fragment_autopilot);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);

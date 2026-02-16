@@ -12,6 +12,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -59,7 +60,7 @@ public class ManualFragment extends Fragment  {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_manual, container, false);
-
+        /*
         Button start = rootView.findViewById(R.id.start);
         Button forward = rootView.findViewById(R.id.forward);
         Button backward = rootView.findViewById(R.id.backward);
@@ -71,12 +72,17 @@ public class ManualFragment extends Fragment  {
         Button down = rootView.findViewById(R.id.go_down);
         Button rleft = rootView.findViewById(R.id.Rleft);
         Button rright = rootView.findViewById(R.id.Rright);
-        Button autoPilotButton = rootView.findViewById(R.id.autoPilotButton);
+
+         */
+        ImageButton autoPilotButton = rootView.findViewById(R.id.menuButton);
         remoteView = rootView.findViewById(R.id.remoteCameraView);
         WebSocketClientTesting socket = UserActivity.getOrchestrator().webSocket;
-        TextView speedTextView = rootView.findViewById(R.id.speedTextView);
+        /*TextView speedTextView = rootView.findViewById(R.id.speedTextView);
         TextView headingTextView = rootView.findViewById(R.id.HeadingViewText);
         TextView gpsTextView = rootView.findViewById(R.id.gpsTextView);
+        */
+
+/*
         socket.setWebSocketStateListener(new WebSocketClientTesting.WebSocketStateListener() {
             @Override
             public void onOpen() {
@@ -101,7 +107,7 @@ public class ManualFragment extends Fragment  {
         });
 
         // flightControllerSpinner may need to be in dronePhoneFragment
-
+*/
         // Set up listeners, this is what the buttons do when clicked/held.
         autoPilotButton.setOnClickListener(v -> {
             // Ensure the activity is of type UserActivity
@@ -110,6 +116,8 @@ public class ManualFragment extends Fragment  {
                 ((UserActivity) getActivity()).switchFragment(UserActivity.getAutopilotFragment());
             }
         });
+/*
+
         start.setOnClickListener(v -> UserActivity.getOrchestrator().connectToPhone());
         takeoff.setOnClickListener(v -> UserActivity.getOrchestrator().processCommand("manual,takeoff", this::sendCommand));
         land.setOnClickListener(v -> UserActivity.getOrchestrator().processCommand("manual,land", this::sendCommand));
@@ -129,8 +137,13 @@ public class ManualFragment extends Fragment  {
 //        }
         return rootView;
 
+         */
 
+        return rootView;
     }
+
+
+
     private void setMovementListener(Button button, String action) {
         button.setOnTouchListener((view, motionEvent) -> {
             switch (motionEvent.getAction()) {

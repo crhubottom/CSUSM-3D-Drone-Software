@@ -29,11 +29,11 @@ public class StartupActivity extends AppCompatActivity {
         Button DronePhoneButton = findViewById(R.id.DronePhoneButton);
         Button UserPhoneButton = findViewById(R.id.UserPhoneButton);
         DronePhoneButton.setOnClickListener(v -> {
-            Intent intent = new Intent(StartupActivity.this, DroneSetupActivity.class);
+            Intent intent = new Intent(StartupActivity.this, DroneActivity.class);
             startActivity(intent);
         });
         UserPhoneButton.setOnClickListener(v -> {
-            Intent intent = new Intent(StartupActivity.this, ManualControlActivity.class);
+            Intent intent = new Intent(StartupActivity.this, UserActivity.class);
             startActivity(intent);
         });
 
