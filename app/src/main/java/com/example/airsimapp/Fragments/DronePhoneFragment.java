@@ -65,13 +65,15 @@ public class DronePhoneFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_drone_phone, container, false);
-        previewView = rootView.findViewById(R.id.previewView);
+       /* previewView = rootView.findViewById(R.id.previewView);
         connectDroneButton = rootView.findViewById(R.id.connectDroneButton);
         connectUserButton = rootView.findViewById(R.id.connectUserButton);
         output = rootView.findViewById(R.id.droneActivityTextView);
         Spinner flightControllerSpinner = rootView.findViewById(R.id.flightControllerSpinner);
-        connectUserButton.setOnClickListener(v -> connectToUser());
-        connectDroneButton.setOnClickListener(v -> connectToDrone());
+
+        */
+//        connectUserButton.setOnClickListener(v -> connectToUser());
+      //  connectDroneButton.setOnClickListener(v -> connectToDrone());
         webSocket.setWebSocketStateListener(new WebSocketClientTesting.WebSocketStateListener() {
             @Override
             public void onOpen() {
@@ -96,7 +98,7 @@ public class DronePhoneFragment extends Fragment {
         // Set up Spinner (dropdown)
         String[] controllers = {"AirSim"};
         ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_dropdown_item, controllers);
-        flightControllerSpinner.setAdapter(adapter);
+    /*    flightControllerSpinner.setAdapter(adapter);
 
         flightControllerSpinner.setSelection(0);
         // Handle dropdown selection
@@ -119,6 +121,8 @@ public class DronePhoneFragment extends Fragment {
                 // Do nothing
             }
         });
+
+     */
 
         webSocket.setWebSocketMessageListener(new WebSocketClientTesting.WebSocketMessageListener() {
             @Override
@@ -186,7 +190,7 @@ public class DronePhoneFragment extends Fragment {
             ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
 
             Preview preview = new Preview.Builder().build();
-            preview.setSurfaceProvider(previewView.getSurfaceProvider());
+//            preview.setSurfaceProvider(previewView.getSurfaceProvider());
 
             ImageAnalysis analysis = new ImageAnalysis.Builder()
                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
