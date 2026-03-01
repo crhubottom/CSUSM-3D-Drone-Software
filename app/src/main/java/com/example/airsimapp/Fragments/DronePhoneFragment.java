@@ -2,6 +2,7 @@ package com.example.airsimapp.Fragments;
 
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.ImageFormat;
@@ -32,6 +33,9 @@ import androidx.camera.view.PreviewView;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
+import com.example.airsimapp.Activities.DroneActivity;
+import com.example.airsimapp.Activities.StartupActivity;
+import com.example.airsimapp.Activities.UserActivity;
 import com.example.airsimapp.AirSimFlightController;
 import com.example.airsimapp.R;
 import com.example.airsimapp.WebSocketClientTesting;
@@ -69,9 +73,12 @@ public class DronePhoneFragment extends Fragment {
         connectDroneButton = rootView.findViewById(R.id.connectDroneButton);
         connectUserButton = rootView.findViewById(R.id.connectUserButton);
         output = rootView.findViewById(R.id.droneActivityTextView);
-        Spinner flightControllerSpinner = rootView.findViewById(R.id.flightControllerSpinner);
 
         */
+        Spinner flightControllerSpinner = rootView.findViewById(R.id.FlightControllerChoice);
+        Button manualButton = rootView.findViewById(R.id.backButton);
+
+
 //        connectUserButton.setOnClickListener(v -> connectToUser());
       //  connectDroneButton.setOnClickListener(v -> connectToDrone());
         webSocket.setWebSocketStateListener(new WebSocketClientTesting.WebSocketStateListener() {
@@ -96,9 +103,9 @@ public class DronePhoneFragment extends Fragment {
             }
         });
         // Set up Spinner (dropdown)
-        String[] controllers = {"AirSim"};
+        String[] controllers = {"AirSim","Pixhawk"};
         ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_dropdown_item, controllers);
-    /*    flightControllerSpinner.setAdapter(adapter);
+        flightControllerSpinner.setAdapter(adapter);
 
         flightControllerSpinner.setSelection(0);
         // Handle dropdown selection
@@ -122,7 +129,11 @@ public class DronePhoneFragment extends Fragment {
             }
         });
 
-     */
+        manualButton.setOnClickListener(v -> {
+            // Ensure the activity is of type UserActivity
+            Intent intent = new Intent(requireContext(), StartupActivity.class);
+            startActivity(intent);
+        });
 
         webSocket.setWebSocketMessageListener(new WebSocketClientTesting.WebSocketMessageListener() {
             @Override

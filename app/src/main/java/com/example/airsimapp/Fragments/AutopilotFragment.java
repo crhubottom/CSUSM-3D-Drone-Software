@@ -1,5 +1,6 @@
 package com.example.airsimapp.Fragments;
 
+import android.app.AlertDialog;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.os.Bundle;
@@ -29,10 +30,13 @@ import com.example.airsimapp.CommandAdapter;
 import com.example.airsimapp.GPS;
 import com.example.airsimapp.GPSCommand;
 import com.example.airsimapp.HeadingAndSpeed;
+import com.example.airsimapp.InstructionAdapter;
+import com.example.airsimapp.InstructionItem;
 import com.example.airsimapp.LoiterPattern;
 import com.example.airsimapp.R;
 import com.example.airsimapp.WebSocketClientTesting;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -75,7 +79,10 @@ public class AutopilotFragment extends Fragment {
         );
         commandRecyclerView.setAdapter(commandAdapter);
         // Get the button from the layout
-        Button manualButton = view.findViewById(R.id.manualButton);
+
+ */
+        Button manualButton = view.findViewById(R.id.backButtonAutopilot);
+        /*
         EditText latitude = view.findViewById(R.id.gpsCord);
         EditText longitude = view.findViewById(R.id.gpsCord2);
         EditText altitude = view.findViewById(R.id.gpsCord3);
@@ -182,7 +189,7 @@ public class AutopilotFragment extends Fragment {
             }
         });
 
-
+*/
         // Set the button's click listener to return to the UserPhoneFragment
         manualButton.setOnClickListener(v -> {
             // Ensure the activity is of type UserActivity
@@ -191,9 +198,96 @@ public class AutopilotFragment extends Fragment {
                 ((UserActivity) getActivity()).switchFragment(UserActivity.getUserPhoneFragment());
             }
         });
+        String[] items = {"Pattern 1", "Pattern 2", "Pattern 3"};
+        Spinner spinner = view.findViewById(R.id.patternSpinner);
 
- */
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                getContext(), android.R.layout.simple_spinner_item, items
+        );
 
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+        spinner.setAdapter(adapter);
+        RecyclerView recyclerView = view.findViewById(R.id.recyclerView);
+        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+
+
+        ArrayList<InstructionItem> list = new ArrayList<>();
+        InstructionAdapter instructionAdapter = new InstructionAdapter(list);
+        recyclerView.setAdapter(instructionAdapter);
+        EditText latText = view.findViewById(R.id.LatText);
+        EditText longText = view.findViewById(R.id.LongText);
+        EditText altText = view.findViewById(R.id.AltText);
+        Button gpsButton = view.findViewById(R.id.GPSButton);
+
+        gpsButton.setOnClickListener(v -> {
+            String lat = latText.getText().toString().trim();
+            String lon = longText.getText().toString().trim();
+            String alt = altText.getText().toString().trim();
+
+            if (lat.isEmpty() || lon.isEmpty() || alt.isEmpty()) {
+                Toast.makeText(getContext(), "Please fill in all GPS coordinates", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            new AlertDialog.Builder(getContext())
+                    .setTitle("Confirm GPS Entry")
+                    .setMessage("Latitude: " + lat + "\nLongitude: " + lon + "\nAltitude: " + alt)
+                    .setPositiveButton("Confirm", (dialog, which) -> {
+                        Toast.makeText(getContext(), "GPS Coordinates Confirmed!", Toast.LENGTH_SHORT).show();
+                        list.add(new InstructionItem(R.drawable.gpsicon, "Waypoint", "Lat: " + lat + " Lon: " + lon + " Alt: " + alt));
+                        instructionAdapter.notifyItemInserted(list.size() - 1);
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        });
+
+        EditText direction = view.findViewById(R.id.directionInput);
+        EditText speed = view.findViewById(R.id.speedInput);
+        EditText time = view.findViewById(R.id.timeInput);
+        Button headingButton = view.findViewById(R.id.headingButton);
+        headingButton.setOnClickListener(v -> {
+            String dir = direction.getText().toString().trim();
+            String speedText = speed.getText().toString().trim();
+            String t = time.getText().toString().trim();
+
+            if(dir.isEmpty() ||speedText.isEmpty() || t.isEmpty()){
+                Toast.makeText(getContext(), "Please fill in all Heading/Speed instructions", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            new AlertDialog.Builder(getContext())
+                    .setTitle("Confirm Heading/Speed Entry")
+                    .setMessage("Direction: " + dir + "\nSpeed: " + speedText + "\nTime: " + t)
+                    .setPositiveButton("Confirm", (dialog, which)->{
+                        Toast.makeText(getContext(), "Heading/Speed Confirmed!", Toast.LENGTH_SHORT).show();
+                        list.add(new InstructionItem(R.drawable.directionicon, "Heading/Speed", "Direction: " + dir + " Speed: " + speedText + " Time: " + t));
+                        instructionAdapter.notifyItemInserted(list.size() - 1);
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        });
+
+        EditText timePattern = view.findViewById(R.id.patternTime);
+        Button patternButton = view.findViewById(R.id.patternButton);
+
+        patternButton.setOnClickListener(v -> {
+            String pattern = spinner.getSelectedItem().toString();
+            String timePatternText = timePattern.getText().toString().trim();
+
+            if(pattern.isEmpty() || timePatternText.isEmpty()){
+                Toast.makeText(getContext(), "Please fill in all Pattern instructions", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            new AlertDialog.Builder(getContext())
+                    .setTitle("Confirm Pattern Entry")
+                    .setMessage("Pattern: " + pattern + "\nTime: " + timePatternText)
+                    .setPositiveButton("Confirm", (dialog, which)->{
+                        Toast.makeText(getContext(), "Pattern Confirmed!", Toast.LENGTH_SHORT).show();
+                        list.add(new InstructionItem(R.drawable.patternicon, pattern, "Time" + timePatternText));
+                        instructionAdapter.notifyItemInserted(list.size() - 1);
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        });
 
 
         // This will listen for messages from the drone websocket

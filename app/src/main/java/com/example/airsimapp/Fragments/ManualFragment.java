@@ -1,7 +1,10 @@
 package com.example.airsimapp.Fragments;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
+import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.graphics.Matrix;
 import android.os.Bundle;
 import android.os.Handler;
@@ -22,7 +25,9 @@ import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
+import com.example.airsimapp.Activities.StartupActivity;
 import com.example.airsimapp.Activities.UserActivity;
+import com.example.airsimapp.JoystickView;
 import com.example.airsimapp.R;
 import com.example.airsimapp.WebSocketClientTesting;
 
@@ -56,10 +61,13 @@ public class ManualFragment extends Fragment  {
 
     String currentTime;
 
+    @SuppressLint("SetTextI18n")
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_manual, container, false);
+        final boolean[] landed = {false};
+
         /*
         Button start = rootView.findViewById(R.id.start);
         Button forward = rootView.findViewById(R.id.forward);
@@ -74,6 +82,13 @@ public class ManualFragment extends Fragment  {
         Button rright = rootView.findViewById(R.id.Rright);
 
          */
+        Button manualButton = rootView.findViewById(R.id.backButton2);
+
+        manualButton.setOnClickListener(v -> {
+            // Ensure the activity is of type UserActivity
+            Intent intent = new Intent(requireContext(), StartupActivity.class);
+            startActivity(intent);
+        });
         ImageButton autoPilotButton = rootView.findViewById(R.id.menuButton);
         remoteView = rootView.findViewById(R.id.remoteCameraView);
         WebSocketClientTesting socket = UserActivity.getOrchestrator().webSocket;
@@ -115,6 +130,38 @@ public class ManualFragment extends Fragment  {
                 // Call switchFragment on the activity
                 ((UserActivity) getActivity()).switchFragment(UserActivity.getAutopilotFragment());
             }
+        });
+        JoystickView joystick = rootView.findViewById(R.id.joystick);
+
+        joystick.setJoystickListener((angle, strength) -> {
+            // angle: direction in degrees (-180 to 180)
+            // strength: distance from center (0–100)
+            System.out.println(angle+"   "+strength);
+            // Map these values to drone controls
+        });
+        JoystickView joystick2 = rootView.findViewById(R.id.joystick2);
+
+        joystick2.setJoystickListener((angle, strength) -> {
+            // angle: direction in degrees (-180 to 180)
+            // strength: distance from center (0–100)
+            System.out.println(angle+"   "+strength);
+            // Map these values to drone controls
+        });
+        Button TakeoffLandingButton = rootView.findViewById(R.id.TakeoffLanding);
+        TakeoffLandingButton.setOnClickListener(v -> {
+            landed[0] = !landed[0];
+            if(landed[0]){
+                TakeoffLandingButton.setBackgroundColor(Color.parseColor("#B22222"));
+                TakeoffLandingButton.setText("Land");
+
+
+                //takeoff logic here
+            }
+            else{
+                TakeoffLandingButton.setBackgroundColor(Color.parseColor("#32CD32"));
+                TakeoffLandingButton.setText("Takeoff");
+            }
+
         });
 /*
 
