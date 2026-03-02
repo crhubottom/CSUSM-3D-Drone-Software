@@ -27,7 +27,9 @@ import androidx.fragment.app.Fragment;
 
 import com.example.airsimapp.Activities.StartupActivity;
 import com.example.airsimapp.Activities.UserActivity;
+import com.example.airsimapp.JoystickUdpSender;
 import com.example.airsimapp.JoystickView;
+import com.example.airsimapp.PixhawkMavlinkUsb;
 import com.example.airsimapp.R;
 import com.example.airsimapp.WebSocketClientTesting;
 
@@ -46,10 +48,23 @@ public class ManualFragment extends Fragment  {
     private static final int REQUEST_CODE_PERMISSIONS = 10;
     private static final String[] REQUIRED_PERMISSIONS = {Manifest.permission.CAMERA};
     //private TextView output;
+    private JoystickUdpSender udp;
+    private boolean uiArmed = false; // UI state (requested), real armed state is shown in laptop console
     private ImageView remoteView;
     private ExecutorService cameraExecutor;
     private final Set<String> activeActions = new HashSet<>();
     private Runnable commandRunnable;
+    // MAVLink USB controller
+    private PixhawkMavlinkUsb pixhawk;
+
+    // Shared stick state (MANUAL_CONTROL fields)
+    private final java.util.concurrent.atomic.AtomicInteger rollY  = new java.util.concurrent.atomic.AtomicInteger(0);
+    private final java.util.concurrent.atomic.AtomicInteger pitchX = new java.util.concurrent.atomic.AtomicInteger(0);
+    private final java.util.concurrent.atomic.AtomicInteger yawR   = new java.util.concurrent.atomic.AtomicInteger(0);
+    private final java.util.concurrent.atomic.AtomicInteger thrZ   = new java.util.concurrent.atomic.AtomicInteger(0);
+
+    // Gate throttle until armed
+    private final java.util.concurrent.atomic.AtomicBoolean armed = new java.util.concurrent.atomic.AtomicBoolean(false);
     //private Orchestrator orchestrator;
 
     // These help us loop the commands being sent
@@ -67,7 +82,13 @@ public class ManualFragment extends Fragment  {
                              @Nullable Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_manual, container, false);
         final boolean[] landed = {false};
-
+        try {
+            //used for emulator only
+            udp = new JoystickUdpSender("10.0.2.2", 14560);
+        } catch (Exception e) {
+            Toast.makeText(requireContext(), "UDP init failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            udp = null;
+        }
         /*
         Button start = rootView.findViewById(R.id.start);
         Button forward = rootView.findViewById(R.id.forward);
@@ -82,6 +103,35 @@ public class ManualFragment extends Fragment  {
         Button rright = rootView.findViewById(R.id.Rright);
 
          */
+        Button TakeoffLandingButton = rootView.findViewById(R.id.TakeoffLanding);
+
+// Initial UI state
+        TakeoffLandingButton.setBackgroundColor(Color.parseColor("#32CD32"));
+        TakeoffLandingButton.setText("ARM");
+
+        TakeoffLandingButton.setOnClickListener(v -> {
+            uiArmed = !uiArmed;
+            System.out.println("Button clicked!");
+            if (udp != null) {
+                // C,1,0 = ARM request; C,0,0 = DISARM request
+                System.out.println("Button !");
+                udp.send(uiArmed ? "C,1,0" : "C,0,0");
+            } else {
+                Toast.makeText(requireContext(), "UDP not initialized", Toast.LENGTH_SHORT).show();
+                uiArmed = !uiArmed; // revert toggle
+                return;
+            }
+            //switch to dedicated ARM/DISARM button
+            if (uiArmed) {
+                TakeoffLandingButton.setBackgroundColor(Color.parseColor("#B22222"));
+                TakeoffLandingButton.setText("DISARM");
+                Toast.makeText(requireContext(), "ARM requested (check laptop console)", Toast.LENGTH_SHORT).show();
+            } else {
+                TakeoffLandingButton.setBackgroundColor(Color.parseColor("#32CD32"));
+                TakeoffLandingButton.setText("ARM");
+                Toast.makeText(requireContext(), "DISARM requested", Toast.LENGTH_SHORT).show();
+            }
+        });
         Button manualButton = rootView.findViewById(R.id.backButton2);
 
         manualButton.setOnClickListener(v -> {
@@ -131,23 +181,55 @@ public class ManualFragment extends Fragment  {
                 ((UserActivity) getActivity()).switchFragment(UserActivity.getAutopilotFragment());
             }
         });
+        //uncomment if not using emulator
+        //needs to be moved to orchestrator once P2P is working
+/*
         JoystickView joystick = rootView.findViewById(R.id.joystick);
-
         joystick.setJoystickListener((angle, strength) -> {
-            // angle: direction in degrees (-180 to 180)
-            // strength: distance from center (0–100)
-            System.out.println(angle+"   "+strength);
-            // Map these values to drone controls
-        });
-        JoystickView joystick2 = rootView.findViewById(R.id.joystick2);
 
-        joystick2.setJoystickListener((angle, strength) -> {
-            // angle: direction in degrees (-180 to 180)
-            // strength: distance from center (0–100)
-            System.out.println(angle+"   "+strength);
-            // Map these values to drone controls
+            if (strength < 5) strength = 0; // deadzone
+
+            int[] xy = polarToXY(angle, strength);
+            int x = xy[0];
+            int y = xy[1];
+
+            yawR.set(x);
+
+            int throttle = stickYToThrottle(y);
+            thrZ.set(armed.get() ? throttle : 0); // IMPORTANT: no throttle until arm accepted
+
+            udp.sendStick('L', angle, strength);
+
         });
-        Button TakeoffLandingButton = rootView.findViewById(R.id.TakeoffLanding);
+
+        JoystickView joystick2 = rootView.findViewById(R.id.joystick2);
+        joystick2.setJoystickListener((angle, strength) -> {
+
+            if (strength < 5) strength = 0; // deadzone
+
+            int[] xy = polarToXY(angle, strength);
+            int x = xy[0];
+            int y = xy[1];
+
+            rollY.set(x);
+            pitchX.set(y);
+
+
+            udp.sendStick('R', angle, strength);
+        });
+        */
+        JoystickView joystick = rootView.findViewById(R.id.joystick);
+        joystick.setJoystickListener((angle, strength) -> {
+            if (udp != null) udp.sendStick('R', angle, strength);
+        });
+
+        JoystickView joystick2 = rootView.findViewById(R.id.joystick2);
+        joystick2.setJoystickListener((angle, strength) -> {
+            if (udp != null) udp.sendStick('L', angle, strength);
+        });
+
+        //once dedicated arm button is added, uncomment this
+        /*
         TakeoffLandingButton.setOnClickListener(v -> {
             landed[0] = !landed[0];
             if(landed[0]){
@@ -163,6 +245,9 @@ public class ManualFragment extends Fragment  {
             }
 
         });
+
+         */
+
 /*
 
         start.setOnClickListener(v -> UserActivity.getOrchestrator().connectToPhone());
@@ -189,7 +274,36 @@ public class ManualFragment extends Fragment  {
         return rootView;
     }
 
+    static int stickYToThrottle(int y /* -1000..1000 */) {
+        // y=-1000 (down) => 0 throttle
+        // y=+1000 (up)   => 1000 throttle
+        return clamp((y + 1000) / 2, 0, 1000);
+    }
+    static int clamp(int v, int lo, int hi) {
+        return Math.max(lo, Math.min(hi, v));
+    }
 
+    /**
+     * Joystick angle system:
+     *  0° = right
+     * -90° = up
+     * +90° = down
+     * +/-180° = left
+     *
+     * Returns {x, y} in [-1000..1000], where y>0 means up.
+     */
+    static int[] polarToXY(double angleDeg, double strength) {
+        double mag = clamp((int)Math.round(strength), 0, 100) / 100.0; // 0..1
+        double rad = Math.toRadians(-angleDeg); // NEGATE because angles go clockwise
+
+        double x = Math.cos(rad) * mag; // right/left
+        double y = Math.sin(rad) * mag; // up/down
+
+        int xi = (int)Math.round(x * 1000.0);
+        int yi = (int)Math.round(y * 1000.0);
+
+        return new int[]{ clamp(xi, -1000, 1000), clamp(yi, -1000, 1000) };
+    }
 
     private void setMovementListener(Button button, String action) {
         button.setOnTouchListener((view, motionEvent) -> {
@@ -278,6 +392,14 @@ public class ManualFragment extends Fragment  {
     public void onDestroy() {
         super.onDestroy();
         stopCommandLoop();
+
+            super.onDestroy();
+            stopCommandLoop();
+            if (udp != null) {
+                udp.close();
+                udp = null;
+            }
+
         //cameraExecutor.shutdown();
     }
 
