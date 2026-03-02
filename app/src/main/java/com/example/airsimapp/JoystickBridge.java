@@ -1,5 +1,23 @@
 package com.example.airsimapp;
 
+
+        //needs to be ran separately, in IntelliJ or other Java IDE
+        //needs Maven imports below
+        /*
+         <dependency>
+            <groupId>io.dronefleet.mavlink</groupId>
+            <artifactId>mavlink</artifactId>
+            <version>1.1.11</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fazecast</groupId>
+            <artifactId>jSerialComm</artifactId>
+            <version>2.10.4</version>
+        </dependency>
+*/
+
+
+/*
 import com.fazecast.jSerialComm.SerialPort;
 import io.dronefleet.mavlink.MavlinkConnection;
 import io.dronefleet.mavlink.MavlinkMessage;
@@ -238,3 +256,5 @@ public class JoystickBridge {
         return Math.max(lo, Math.min(hi, v));
     }
 }
+
+ */
