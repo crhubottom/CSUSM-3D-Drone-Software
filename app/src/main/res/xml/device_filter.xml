@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 3DR / Pixhawk native USB (ArduPilot/PX4 STM32) -->
+    <usb-device vendor-id="9900" />   <!-- 0x26AC decimal -->
+
+    <!-- Wait — 9900 decimal = 0x26AC which IS correct for 3DR! -->
+    <!-- But also add these for safety: -->
+
+    <!-- STM32 DFU / virtual COM -->
+    <usb-device vendor-id="1155" />   <!-- 0x0483 -->
+
+    <!-- Silicon Labs CP210x -->
+    <usb-device vendor-id="4292" />   <!-- 0x10C4 -->
+
+    <!-- FTDI -->
+    <usb-device vendor-id="1027" />   <!-- 0x0403 -->
+
+    <!-- Prolific PL2303 -->
+    <usb-device vendor-id="1659" />   <!-- 0x067B -->
+</resources>

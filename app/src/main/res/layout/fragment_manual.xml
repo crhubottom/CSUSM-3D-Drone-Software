@@ -79,7 +79,6 @@
         android:id="@+id/TakeoffLanding"
         android:layout_width="147dp"
         android:layout_height="42dp"
-        android:backgroundTint="#32CD32"
         android:text="Takeoff"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
