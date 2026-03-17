@@ -9,6 +9,15 @@ import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
 import android.util.Log;
+import android.widget.Toast;
+import io.dronefleet.mavlink.common.ActuatorOutputStatus;
+import java.util.Locale;
+
+import io.dronefleet.mavlink.common.Attitude;
+import io.dronefleet.mavlink.common.MavDataStream;
+import io.dronefleet.mavlink.common.RequestDataStream;
+import io.dronefleet.mavlink.common.VfrHud;
+import io.dronefleet.mavlink.common.ServoOutputRaw;
 
 import androidx.core.content.ContextCompat;
 
@@ -89,10 +98,114 @@ public class PixhawkMavlinkUsb {
     public void setPitch(int v)    { pitch.set(clamp(v, -1000, 1000)); }
     public void setYaw(int v)      { yaw.set(clamp(v, -1000, 1000)); }
     public void setThrottle(int v) { throttle.set(clamp(v, 0, 1000)); }
+    // ---- Telemetry state (updated by receiver thread) ----
+    private volatile float altitudeM = 0f;      // meters
+    private volatile float headingDeg = 0f;     // degrees 0..359
+    private volatile float groundSpeedMs = 0f;  // m/s
+
+    // Motors as percent 0..100 (quad). Updated from SERVO_OUTPUT_RAW.
+    private final AtomicInteger m1Pct = new AtomicInteger(0);
+    private final AtomicInteger m2Pct = new AtomicInteger(0);
+    private final AtomicInteger m3Pct = new AtomicInteger(0);
+    private final AtomicInteger m4Pct = new AtomicInteger(0);
+    public float getAltitude() { return altitudeM; }
+    public float getHeading()  { return headingDeg; }
+    public float getGroundSpeed() { return groundSpeedMs; }
+
+
+    // MAVLink msg IDs
+    private static final int MSG_ID_VFR_HUD = 74;
+    private static final int MSG_ID_ACTUATOR_OUTPUT_STATUS = 375;
+    private static final int MSG_ID_SERVO_OUTPUT_RAW = 36;
+    private void requestMessageInterval(int messageId, int hz) {
+        if (mav == null || targetSys < 0) return;
+
+        int comp = (targetComp > 0) ? targetComp : 1;
+        float intervalUs = 1_000_000f / hz;
+
+        try {
+            CommandLong cmd = CommandLong.builder()
+                    .targetSystem(targetSys)
+                    .targetComponent(comp)
+                    .command(MavCmd.MAV_CMD_SET_MESSAGE_INTERVAL)
+                    .confirmation(0)
+                    .param1(messageId)
+                    .param2(intervalUs)
+                    .build();
+
+            mav.send2(mySysId, myCompId, cmd);
+            Log.i(TAG, "Requested msg " + messageId + " at " + hz + " Hz");
+        } catch (Exception e) {
+            Log.e(TAG, "requestMessageInterval failed for msg " + messageId, e);
+        }
+    }
+
+    // Call after heartbeat targetSys known
+    private void requestDataStreamsLegacy() {
+        if (mav == null || targetSys < 0) return;
+        int comp = (targetComp > 0) ? targetComp : 1;
+
+        try {
+            mav.send2(mySysId, myCompId, RequestDataStream.builder()
+                    .targetSystem(targetSys)
+                    .targetComponent(comp)
+                    .reqStreamId(2)
+                    .reqMessageRate(5)
+                    .startStop(1)
+                    .build());
+
+            mav.send2(mySysId, myCompId, RequestDataStream.builder()
+                    .targetSystem(targetSys)
+                    .targetComponent(comp)
+                    .reqStreamId(10)
+                    .reqMessageRate(10)
+                    .startStop(1)
+                    .build());
+
+            mav.send2(mySysId, myCompId, RequestDataStream.builder()
+                    .targetSystem(targetSys)
+                    .targetComponent(comp)
+                    .reqStreamId(11)
+                    .reqMessageRate(10)
+                    .startStop(1)
+                    .build());
+
+            mav.send2(mySysId, myCompId, RequestDataStream.builder()
+                    .targetSystem(targetSys)
+                    .targetComponent(comp)
+                    .reqStreamId(12)
+                    .reqMessageRate(10)
+                    .startStop(1)
+                    .build());
+
+            Log.i(TAG, "Requested legacy data streams");
+        } catch (Exception e) {
+            Log.e(TAG, "requestDataStreamsLegacy failed", e);
+        }
+    }
+
+
+
+    /** Returns motor outputs as 0..100 percent (quad). Safe to call from UI thread. */
+    public int[] getMotorOutputsPercent() {
+        return new int[] { m1Pct.get(), m2Pct.get(), m3Pct.get(), m4Pct.get() };
+    }
+
 
     public boolean isArmed()     { return armed.get(); }
     public boolean isConnected() { return connected; }
+    // Convert PWM (typically 1000..2000) to 0..100%
+    private static int pwmToPercent(int pwm) {
+        if (pwm <= 0) return 0; // 0 can mean "not present" depending on firmware
+        // clamp to expected range
+        int clamped = clamp(pwm, 1000, 2000);
+        return (clamped - 1000) / 10; // 1000->0, 2000->100
+    }
 
+    // If you want percent from throttle 0..1000:
+    public int getThrottlePercent() {
+        return clamp(throttle.get() / 10, 0, 100);
+    }
     public void arm(boolean arm) {
         if (arm) arm();
         else disarm();
@@ -200,7 +313,10 @@ public class PixhawkMavlinkUsb {
         targetComp    = -1;
         armed.set(false);
         throttle.set(0);
-
+        altitudeM = 0f;
+        headingDeg = 0f;
+        groundSpeedMs = 0f;
+        m1Pct.set(0); m2Pct.set(0); m3Pct.set(0); m4Pct.set(0);
         receiverRunning.set(false);
     }
 
@@ -314,39 +430,87 @@ public class PixhawkMavlinkUsb {
                     MavlinkMessage<?> msg = localMav.next(); // blocks until full MAVLink frame
                     if (msg == null) continue;
 
-                    if (++msgCount % 25 == 0) Log.i(TAG, "MAVLink packets: " + msgCount);
+                    //if (++msgCount % 25 == 0) Log.i(TAG, "MAVLink packets: " + msgCount);
 
                     Object p = msg.getPayload();
+                   // Log.i(TAG,p.toString());
 
                     if (p instanceof Heartbeat) {
                         if (targetSys < 0) {
                             targetSys  = msg.getOriginSystemId();
                             targetComp = msg.getOriginComponentId();
-                            Log.i(TAG, "HEARTBEAT sys=" + targetSys + " comp=" + targetComp);
 
+                            requestDataStreamsLegacy();
+
+                            requestMessageInterval(MSG_ID_VFR_HUD, 5);
+                            requestMessageInterval(MSG_ID_SERVO_OUTPUT_RAW, 10);
+                            requestMessageInterval(MSG_ID_ACTUATOR_OUTPUT_STATUS, 10);
                             if (hasPendingArm.getAndSet(false)) {
                                 boolean armReq = pendingArm.get();
                                 Log.i(TAG, "Flushing queued " + (armReq ? "ARM" : "DISARM"));
                                 sendArmDisarm(armReq);
                             }
                         }
-
                     } else if (p instanceof Statustext) {
-                        Log.i(TAG, "STATUSTEXT: " + ((Statustext) p).text());
+                       // Log.i(TAG, "STATUSTEXT: " + ((Statustext) p).text());
 
                     } else if (p instanceof CommandAck) {
                         CommandAck ack = (CommandAck) p;
-
+                        Log.i(TAG, "ACK cmd=" + ack.command() + " result=" + ack.result());
                         if (ack.command().entry() == MavCmd.MAV_CMD_COMPONENT_ARM_DISARM) {
                             boolean ok = ack.result().entry() == MavResult.MAV_RESULT_ACCEPTED;
                             boolean newState = ok && lastArmRequest.get();
                             armed.set(newState);
                             if (!newState) throttle.set(0);
-                            Log.i(TAG, "ARM=" + newState + " ack=" + ack.result());
+                           // Log.i(TAG, "ARM=" + newState + " ack=" + ack.result());
                         } else {
-                            Log.i(TAG, "ACK: " + ack.command() + " -> " + ack.result());
+                           // Log.i(TAG, "ACK: " + acvk.command() + " -> " + ack.result());
                         }
-                    }
+                    }else if (p instanceof VfrHud) {
+                        VfrHud hud = (VfrHud) p;
+
+                        headingDeg = normalize360((float) hud.heading());
+                        groundSpeedMs = hud.groundspeed();
+                        altitudeM = hud.alt();
+                        Log.i(TAG, String.format("VFR_HUD heading=%.2f", headingDeg));
+                    } else if (p instanceof Attitude) {
+                        Attitude a = (Attitude) p;
+                        // ATTITUDE.yaw is radians
+                        headingDeg = normalize360((float)Math.toDegrees(a.yaw()));
+                        Log.i(TAG, String.format("ATTITUDE yawRad=%.6f -> heading=%.2f", a.yaw(), headingDeg));
+
+                    }else if (p instanceof ServoOutputRaw) {
+                        ServoOutputRaw s = (ServoOutputRaw) p;
+
+                        int m1 = pwmToPercent(s.servo1Raw());
+                        int m2 = pwmToPercent(s.servo2Raw());
+                        int m3 = pwmToPercent(s.servo3Raw());
+                        int m4 = pwmToPercent(s.servo4Raw());
+
+                        m1Pct.set(m1);
+                        m2Pct.set(m2);
+                        m3Pct.set(m3);
+                        m4Pct.set(m4);
+
+                        Log.i(TAG, "SERVO_OUTPUT_RAW pwm="
+                                + s.servo1Raw() + ","
+                                + s.servo2Raw() + ","
+                                + s.servo3Raw() + ","
+                                + s.servo4Raw()
+                                + " pct=" + m1 + "," + m2 + "," + m3 + "," + m4);
+                    } else if (p instanceof ActuatorOutputStatus) {
+                    ActuatorOutputStatus a = (ActuatorOutputStatus) p;
+
+                    int m1 = Math.round((float) a.actuator().get(0) * 100f);
+                    int m2 = Math.round((float) a.actuator().get(1) * 100f);
+                    int m3 = Math.round((float) a.actuator().get(2) * 100f);
+                    int m4 = Math.round((float) a.actuator().get(3) * 100f);
+
+                    m1Pct.set(clamp(m1, 0, 100));
+                    m2Pct.set(clamp(m2, 0, 100));
+                    m3Pct.set(clamp(m3, 0, 100));
+                    m4Pct.set(clamp(m4, 0, 100));
+                }
 
                 } catch (java.io.EOFException eof) {
                     Log.e(TAG, "Serial EOF — device disconnected?", eof);
@@ -360,7 +524,12 @@ public class PixhawkMavlinkUsb {
 
         recvThread.start();
     }
-
+    private static float normalize360(float deg) {
+        // returns value in [0,360)
+        float r = deg % 360f;
+        if (r < 0) r += 360f;
+        return r;
+    }
     // ---------------- 20Hz RC override ----------------
 
     private void startSendLoop() {

@@ -76,6 +76,16 @@
         app:srcCompat="@android:drawable/ic_menu_sort_by_size" />
 
     <Button
+        android:id="@+id/startServer"
+        android:layout_width="147dp"
+        android:layout_height="42dp"
+        android:text="Start Server"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.227"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/remoteCameraView" />
+
+    <Button
         android:id="@+id/TakeoffLanding"
         android:layout_width="147dp"
         android:layout_height="42dp"
@@ -84,5 +94,105 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@+id/remoteCameraView" />
 
+    <ScrollView
+        android:id="@+id/telemetryPanel"
+        android:layout_width="0dp"
+        android:layout_height="120dp"
+        android:layout_marginTop="70dp"
+        android:padding="8dp"
+        android:background="@android:color/transparent"
+        android:elevation="4dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Flight Data Row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:weightSum="3">
+
+                <TextView
+                    android:id="@+id/textAltitude"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Alt: 0.0 m"
+                    android:textColor="@android:color/black"
+                    android:textSize="14sp"/>
+
+                <TextView
+                    android:id="@+id/textHeading"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Head: 0°"
+                    android:textColor="@android:color/black"
+                    android:textSize="14sp"/>
+
+                <TextView
+                    android:id="@+id/textSpeed"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Speed: 0.0"
+                    android:textColor="@android:color/black"
+                    android:textSize="14sp"/>
+            </LinearLayout>
+
+            <!-- Motor Row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:weightSum="4"
+                android:layout_marginTop="6dp">
+
+                <TextView
+                    android:id="@+id/textMotor1"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="M1: 0%"
+                    android:textColor="@android:color/black"
+                    android:textSize="13sp"/>
+
+                <TextView
+                    android:id="@+id/textMotor2"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="M2: 0%"
+                    android:textColor="@android:color/black"
+                    android:textSize="13sp"/>
+
+                <TextView
+                    android:id="@+id/textMotor3"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="M3: 0%"
+                    android:textColor="@android:color/black"
+                    android:textSize="13sp"/>
+
+                <TextView
+                    android:id="@+id/textMotor4"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="M4: 0%"
+                    android:textColor="@android:color/black"
+                    android:textSize="13sp"/>
+            </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
+    -->
 
 </androidx.constraintlayout.widget.ConstraintLayout>

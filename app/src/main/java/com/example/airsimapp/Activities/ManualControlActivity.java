@@ -34,14 +34,6 @@ public class ManualControlActivity extends AppCompatActivity {
 
         JoystickView joystick = findViewById(R.id.joystick);
 
-        joystick.setJoystickListener(new JoystickView.JoystickListener() {
-            @Override
-            public void onMove(double angle, double strength) {
-                // angle: direction in degrees (-180 to 180)
-                // strength: distance from center (0–100)
-                // Map these values to drone controls
-            }
-        });
 
         Button backButton2 = findViewById(R.id.backButton2);
         backButton2.setOnClickListener(v -> {
