@@ -115,8 +115,9 @@ public class PixhawkMavlinkUsb {
 
     // MAVLink msg IDs
     private static final int MSG_ID_VFR_HUD = 74;
-    private static final int MSG_ID_ACTUATOR_OUTPUT_STATUS = 375;
     private static final int MSG_ID_SERVO_OUTPUT_RAW = 36;
+    private static final int MSG_ID_ACTUATOR_OUTPUT_STATUS = 375;
+    private static final int MSG_ID_ATTITUDE = 30;
     private void requestMessageInterval(int messageId, int hz) {
         if (mav == null || targetSys < 0) return;
 
@@ -146,6 +147,8 @@ public class PixhawkMavlinkUsb {
         int comp = (targetComp > 0) ? targetComp : 1;
 
         try {
+            // EXTENDED_STATUS would be 1 if you want it
+            // RAW_SENSORS
             mav.send2(mySysId, myCompId, RequestDataStream.builder()
                     .targetSystem(targetSys)
                     .targetComponent(comp)
@@ -154,6 +157,16 @@ public class PixhawkMavlinkUsb {
                     .startStop(1)
                     .build());
 
+            // RC_CHANNELS -> this is the important one for SERVO_OUTPUT_RAW
+            mav.send2(mySysId, myCompId, RequestDataStream.builder()
+                    .targetSystem(targetSys)
+                    .targetComponent(comp)
+                    .reqStreamId(3)
+                    .reqMessageRate(10)
+                    .startStop(1)
+                    .build());
+
+            // EXTRA1
             mav.send2(mySysId, myCompId, RequestDataStream.builder()
                     .targetSystem(targetSys)
                     .targetComponent(comp)
@@ -162,6 +175,7 @@ public class PixhawkMavlinkUsb {
                     .startStop(1)
                     .build());
 
+            // EXTRA2
             mav.send2(mySysId, myCompId, RequestDataStream.builder()
                     .targetSystem(targetSys)
                     .targetComponent(comp)
@@ -170,6 +184,7 @@ public class PixhawkMavlinkUsb {
                     .startStop(1)
                     .build());
 
+            // EXTRA3
             mav.send2(mySysId, myCompId, RequestDataStream.builder()
                     .targetSystem(targetSys)
                     .targetComponent(comp)
@@ -178,7 +193,7 @@ public class PixhawkMavlinkUsb {
                     .startStop(1)
                     .build());
 
-            Log.i(TAG, "Requested legacy data streams");
+            Log.i(TAG, "Requested legacy data streams incl. RC_CHANNELS (3)");
         } catch (Exception e) {
             Log.e(TAG, "requestDataStreamsLegacy failed", e);
         }
@@ -429,11 +444,10 @@ public class PixhawkMavlinkUsb {
                 try {
                     MavlinkMessage<?> msg = localMav.next(); // blocks until full MAVLink frame
                     if (msg == null) continue;
-
                     //if (++msgCount % 25 == 0) Log.i(TAG, "MAVLink packets: " + msgCount);
 
                     Object p = msg.getPayload();
-                   // Log.i(TAG,p.toString());
+                    //Log.i(TAG,p.toString());
 
                     if (p instanceof Heartbeat) {
                         if (targetSys < 0) {
