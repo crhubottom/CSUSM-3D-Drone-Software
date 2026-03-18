@@ -134,7 +134,7 @@ public class WifiP2pController {
 
             @Override
             public void onFailure(int reason) {
-                listener.onError("discoverPeers failed: " + reason);
+                //listener.onError("discoverPeers failed: " + reason);
             }
         });
     }
@@ -160,7 +160,7 @@ public class WifiP2pController {
 
             @Override
             public void onFailure(int reason) {
-                listener.onError("createGroup failed: " + reason);
+               // listener.onError("createGroup failed: " + reason);
             }
         });
     }
@@ -177,12 +177,12 @@ public class WifiP2pController {
         manager.removeGroup(channel, new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
-                listener.onConnectionStatusChanged("Group removed");
+                //listener.onConnectionStatusChanged("Group removed");
             }
 
             @Override
             public void onFailure(int reason) {
-                listener.onError("removeGroup failed: " + reason);
+                //listener.onError("removeGroup failed: " + reason);
             }
         });
     }

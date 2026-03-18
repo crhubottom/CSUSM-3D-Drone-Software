@@ -9,15 +9,6 @@ import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
 import android.util.Log;
-import android.widget.Toast;
-import io.dronefleet.mavlink.common.ActuatorOutputStatus;
-import java.util.Locale;
-
-import io.dronefleet.mavlink.common.Attitude;
-import io.dronefleet.mavlink.common.MavDataStream;
-import io.dronefleet.mavlink.common.RequestDataStream;
-import io.dronefleet.mavlink.common.VfrHud;
-import io.dronefleet.mavlink.common.ServoOutputRaw;
 
 import androidx.core.content.ContextCompat;
 
@@ -26,7 +17,6 @@ import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.driver.UsbSerialProber;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
@@ -40,12 +30,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import io.dronefleet.mavlink.MavlinkConnection;
 import io.dronefleet.mavlink.MavlinkMessage;
+import io.dronefleet.mavlink.common.ActuatorOutputStatus;
+import io.dronefleet.mavlink.common.Attitude;
 import io.dronefleet.mavlink.common.CommandAck;
 import io.dronefleet.mavlink.common.CommandLong;
 import io.dronefleet.mavlink.common.MavCmd;
 import io.dronefleet.mavlink.common.MavResult;
 import io.dronefleet.mavlink.common.RcChannelsOverride;
+import io.dronefleet.mavlink.common.RequestDataStream;
+import io.dronefleet.mavlink.common.ServoOutputRaw;
 import io.dronefleet.mavlink.common.Statustext;
+import io.dronefleet.mavlink.common.VfrHud;
 import io.dronefleet.mavlink.minimal.Heartbeat;
 
 public class PixhawkMavlinkUsb {
@@ -118,6 +113,9 @@ public class PixhawkMavlinkUsb {
     private static final int MSG_ID_SERVO_OUTPUT_RAW = 36;
     private static final int MSG_ID_ACTUATOR_OUTPUT_STATUS = 375;
     private static final int MSG_ID_ATTITUDE = 30;
+
+
+    //tells Pixhawk to send messages to drone phone at specified interval
     private void requestMessageInterval(int messageId, int hz) {
         if (mav == null || targetSys < 0) return;
 
@@ -142,12 +140,12 @@ public class PixhawkMavlinkUsb {
     }
 
     // Call after heartbeat targetSys known
+    //tells pixhawk which messages to send
     private void requestDataStreamsLegacy() {
         if (mav == null || targetSys < 0) return;
         int comp = (targetComp > 0) ? targetComp : 1;
 
         try {
-            // EXTENDED_STATUS would be 1 if you want it
             // RAW_SENSORS
             mav.send2(mySysId, myCompId, RequestDataStream.builder()
                     .targetSystem(targetSys)
@@ -157,7 +155,7 @@ public class PixhawkMavlinkUsb {
                     .startStop(1)
                     .build());
 
-            // RC_CHANNELS -> this is the important one for SERVO_OUTPUT_RAW
+            // RC_CHANNELS
             mav.send2(mySysId, myCompId, RequestDataStream.builder()
                     .targetSystem(targetSys)
                     .targetComponent(comp)
@@ -217,15 +215,15 @@ public class PixhawkMavlinkUsb {
         return (clamped - 1000) / 10; // 1000->0, 2000->100
     }
 
-    // If you want percent from throttle 0..1000:
+    // If you want percent from throttle 0..1000. Not used currently
     public int getThrottlePercent() {
         return clamp(throttle.get() / 10, 0, 100);
     }
-    public void arm(boolean arm) {
+    public void arm(boolean arm) {      //not used
         if (arm) arm();
         else disarm();
     }
-
+    //connect drone phone to Pixhawk via USBC-OTG connection
     public void connect() {
         Log.i(TAG, "connect() called");
         close();
@@ -266,13 +264,13 @@ public class PixhawkMavlinkUsb {
             return;
         }
 
-        // Pixhawk USB MAVLink is normally 115200. Avoid baud probing (it causes resets / parsing issues).
-        serialPort = ports.get(0);
+        // Pixhawk USB MAVLink is normally 115200
+        serialPort = ports.get(0);  //attempts connection on first serial port, assumes no other devices are connected to phone
         try {
             serialPort.open(usbConnection);
             serialPort.setParameters(115200, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
 
-            // Helps some CDC devices (safe if unsupported)
+            // Helps some CDC devices
             try { serialPort.setDTR(true); } catch (Exception ignored) {}
             try { serialPort.setRTS(true); } catch (Exception ignored) {}
 
@@ -285,7 +283,7 @@ public class PixhawkMavlinkUsb {
             // Output can write directly to serial
             OutputStream out = new UsbSerialOutputStream(serialPort);
 
-            // IMPORTANT: MAVLink reads ONLY from pipeIn now (not serialPort.read directly)
+            // MAVLink reads ONLY from pipeIn
             mav = MavlinkConnection.create(pipeIn, out);
 
             connected = true;
@@ -299,7 +297,7 @@ public class PixhawkMavlinkUsb {
             close();
         }
     }
-
+        //disconnects Pixhawk from drone phone, resets variables
     public void close() {
         Log.i(TAG, "close() called");
 
@@ -432,7 +430,6 @@ public class PixhawkMavlinkUsb {
 
         recvThread = new Thread(() -> {
             Log.i(TAG, "Receiver thread started");
-            long msgCount = 0;
 
             while (!Thread.currentThread().isInterrupted()) {
                 MavlinkConnection localMav = mav;
@@ -444,20 +441,19 @@ public class PixhawkMavlinkUsb {
                 try {
                     MavlinkMessage<?> msg = localMav.next(); // blocks until full MAVLink frame
                     if (msg == null) continue;
-                    //if (++msgCount % 25 == 0) Log.i(TAG, "MAVLink packets: " + msgCount);
 
                     Object p = msg.getPayload();
-                    //Log.i(TAG,p.toString());
 
                     if (p instanceof Heartbeat) {
+
                         if (targetSys < 0) {
                             targetSys  = msg.getOriginSystemId();
                             targetComp = msg.getOriginComponentId();
 
-                            requestDataStreamsLegacy();
+                            requestDataStreamsLegacy(); //once heartbeat is detected, request data streams
 
                             requestMessageInterval(MSG_ID_VFR_HUD, 5);
-                            requestMessageInterval(MSG_ID_SERVO_OUTPUT_RAW, 10);
+                            requestMessageInterval(MSG_ID_SERVO_OUTPUT_RAW, 10);        //request more data streams on specified intervals
                             requestMessageInterval(MSG_ID_ACTUATOR_OUTPUT_STATUS, 10);
                             if (hasPendingArm.getAndSet(false)) {
                                 boolean armReq = pendingArm.get();
@@ -466,9 +462,11 @@ public class PixhawkMavlinkUsb {
                             }
                         }
                     } else if (p instanceof Statustext) {
+                        //if theres an error
                        // Log.i(TAG, "STATUSTEXT: " + ((Statustext) p).text());
 
                     } else if (p instanceof CommandAck) {
+                        //different type of error
                         CommandAck ack = (CommandAck) p;
                         Log.i(TAG, "ACK cmd=" + ack.command() + " result=" + ack.result());
                         if (ack.command().entry() == MavCmd.MAV_CMD_COMPONENT_ARM_DISARM) {
@@ -481,19 +479,20 @@ public class PixhawkMavlinkUsb {
                            // Log.i(TAG, "ACK: " + acvk.command() + " -> " + ack.result());
                         }
                     }else if (p instanceof VfrHud) {
+                        //vfrhud is used for compass telemetry
                         VfrHud hud = (VfrHud) p;
 
                         headingDeg = normalize360((float) hud.heading());
                         groundSpeedMs = hud.groundspeed();
                         altitudeM = hud.alt();
                         Log.i(TAG, String.format("VFR_HUD heading=%.2f", headingDeg));
-                    } else if (p instanceof Attitude) {
+                    } else if (p instanceof Attitude) { //altimeter telemetry
                         Attitude a = (Attitude) p;
                         // ATTITUDE.yaw is radians
                         headingDeg = normalize360((float)Math.toDegrees(a.yaw()));
                         Log.i(TAG, String.format("ATTITUDE yawRad=%.6f -> heading=%.2f", a.yaw(), headingDeg));
 
-                    }else if (p instanceof ServoOutputRaw) {
+                    }else if (p instanceof ServoOutputRaw) {    //first type of motor telemetry, rarely used
                         ServoOutputRaw s = (ServoOutputRaw) p;
 
                         int m1 = pwmToPercent(s.servo1Raw());
@@ -512,7 +511,7 @@ public class PixhawkMavlinkUsb {
                                 + s.servo3Raw() + ","
                                 + s.servo4Raw()
                                 + " pct=" + m1 + "," + m2 + "," + m3 + "," + m4);
-                    } else if (p instanceof ActuatorOutputStatus) {
+                    } else if (p instanceof ActuatorOutputStatus) { //second type of motor telemetry, more commonly supported. Is what our Pixhawk sends
                     ActuatorOutputStatus a = (ActuatorOutputStatus) p;
 
                     int m1 = Math.round((float) a.actuator().get(0) * 100f);
@@ -538,6 +537,8 @@ public class PixhawkMavlinkUsb {
 
         recvThread.start();
     }
+
+        //normalizes heading
     private static float normalize360(float deg) {
         // returns value in [0,360)
         float r = deg % 360f;
@@ -546,6 +547,8 @@ public class PixhawkMavlinkUsb {
     }
     // ---------------- 20Hz RC override ----------------
 
+
+        //sends inputs to pixhawk on 20hz loop
     private void startSendLoop() {
         if (sendLoop != null) return;
 
@@ -559,7 +562,7 @@ public class PixhawkMavlinkUsb {
                 int comp = (targetComp > 0) ? targetComp : 1;
                 int thr  = armed.get() ? throttle.get() : 0;
 
-                RcChannelsOverride rc = RcChannelsOverride.builder()
+                RcChannelsOverride rc = RcChannelsOverride.builder()    //rcchannelsoverride is the main way to manually control pixhawk
                         .targetSystem(targetSys)
                         .targetComponent(comp)
                         .chan1Raw(axisToPwm(roll.get()))

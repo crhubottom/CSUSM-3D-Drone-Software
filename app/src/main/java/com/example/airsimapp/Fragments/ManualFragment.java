@@ -12,7 +12,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -30,7 +29,6 @@ import androidx.fragment.app.Fragment;
 import com.example.airsimapp.Activities.StartupActivity;
 import com.example.airsimapp.Activities.UserActivity;
 import com.example.airsimapp.JoystickView;
-import com.example.airsimapp.PixhawkMavlinkUsb;
 import com.example.airsimapp.R;
 import com.example.airsimapp.WebSocketClientTesting;
 import com.example.airsimapp.p2p.WifiP2pController;
@@ -64,23 +62,7 @@ public class ManualFragment extends Fragment implements WifiP2pController.Listen
 
     private final Handler handler = new Handler(Looper.getMainLooper());
 
-    private final Runnable telemetryRunnable = new Runnable() {
-        @Override
-        public void run() {
-            if (!isAdded()) return;
 
-            //updatePixhawkUi();
-
-            if (p2p != null && p2p.isConnected()) {
-                p2pConnected = true;
-               // p2p.sendMessage("test");
-            } else {
-                p2pConnected = false;
-            }
-
-            handler.postDelayed(this, 250);
-        }
-    };
 
     @SuppressLint("SetTextI18n")
     @Override
@@ -114,7 +96,7 @@ public class ManualFragment extends Fragment implements WifiP2pController.Listen
         armButton.setText("ARM");
 
         armButton.setOnClickListener(v -> {
-
+                //should be changed to read actual ARM status from drone phone
             armed = (armed == 0) ? 1 : 0;
 
             if (armed == 1) {
@@ -125,13 +107,13 @@ public class ManualFragment extends Fragment implements WifiP2pController.Listen
                 armButton.setText("ARM");
             }
 
-            sendControlPacket();
+            sendControlPacket();        //sends control packet to arm/disarm drone
         });
-
+                //back button
         backButton.setOnClickListener(v ->
                 startActivity(new Intent(requireContext(), StartupActivity.class))
         );
-
+            //autopilot overlay
         autoPilotButton.setOnClickListener(v -> {
             if (getActivity() instanceof UserActivity) {
                 ((UserActivity) getActivity()).switchFragment(UserActivity.getAutopilotFragment());
@@ -140,7 +122,7 @@ public class ManualFragment extends Fragment implements WifiP2pController.Listen
 
         JoystickView joystickLeft = rootView.findViewById(R.id.joystick2);
         JoystickView joystickRight = rootView.findViewById(R.id.joystick);
-
+                //left joystick
         joystickLeft.setJoystickListener((angle, strength) -> {
 
             int[] xy = polarToXY(angle, strength, 5);
@@ -148,9 +130,9 @@ public class ManualFragment extends Fragment implements WifiP2pController.Listen
             yaw = xy[0];
             throttle = stickYToThrottle(xy[1]);
 
-            sendControlPacket();
+            sendControlPacket(); //sends packet whenever joystick is moved
         });
-
+                //right joystick
         joystickRight.setJoystickListener((angle, strength) -> {
 
             int[] xy = polarToXY(angle, strength, 5);
@@ -158,17 +140,16 @@ public class ManualFragment extends Fragment implements WifiP2pController.Listen
             roll = xy[0];
             pitch = -xy[1];
 
-            sendControlPacket();
+            sendControlPacket();        //sends packet whenever joystick is moved
         });
 
-        handler.post(telemetryRunnable);
 
         return rootView;
     }
     private void sendControlPacket() {
 
         if (p2p != null && p2p.isConnected()) {
-
+                //sends manual control packet
             String msg = "CTRL," +
                     roll + "," +
                     pitch + "," +
@@ -210,7 +191,7 @@ public class ManualFragment extends Fragment implements WifiP2pController.Listen
             p2p.shutdown();
         }
     }
-
+            //start p2p server
     private void startServerFlow() {
         if (!hasP2pPermissions()) {
             requestP2pPermissions();
@@ -223,7 +204,7 @@ public class ManualFragment extends Fragment implements WifiP2pController.Listen
         startServer.setText("Starting...");
         p2p.createGroup();
     }
-
+                        //permission checks
     private boolean hasP2pPermissions() {
         boolean fineLocation = ContextCompat.checkSelfPermission(
                 requireContext(),
@@ -240,7 +221,7 @@ public class ManualFragment extends Fragment implements WifiP2pController.Listen
 
         return fineLocation;
     }
-
+                //permission requests
     private void requestP2pPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             requestPermissions(
@@ -257,7 +238,7 @@ public class ManualFragment extends Fragment implements WifiP2pController.Listen
             );
         }
     }
-
+                    //if user declines permissions, server will not start
     @Override
     public void onRequestPermissionsResult(int requestCode,
                                            @NonNull String[] permissions,
@@ -283,38 +264,19 @@ public class ManualFragment extends Fragment implements WifiP2pController.Listen
         }
     }
 
-        //change to receive telemetry from drone phone
-    /*private void updatePixhawkUi() {
-        boolean armed = pixhawk.isArmed();
 
-        Button armButton = requireView().findViewById(R.id.TakeoffLanding);
-        armButton.setBackgroundColor(armed
-                ? Color.parseColor("#B22222")
-                : Color.parseColor("#32CD32"));
-        armButton.setText(armed ? "DISARM" : "ARM");
-
-        textAltitude.setText(String.format(Locale.US, "Alt: %.1f m", pixhawk.getAltitude()));
-        textHeading.setText(String.format(Locale.US, "Head: %.0f°", pixhawk.getHeading()));
-        textSpeed.setText(String.format(Locale.US, "Speed: %.1f m/s", pixhawk.getGroundSpeed()));
-
-        int[] m = pixhawk.getMotorOutputsPercent();
-        textMotor1.setText("M1: " + m[0] + "%");
-        textMotor2.setText("M2: " + m[1] + "%");
-        textMotor3.setText("M3: " + m[2] + "%");
-        textMotor4.setText("M4: " + m[3] + "%");
-    }
-
-     */
-
+    //left joystick up/down is throttle only
     static int stickYToThrottle(int y) {
         int t = (y + 1000) / 2;
         return clamp(t, 0, 1000);
     }
-
+    //helper method for polarToXY
     static int clamp(int v, int lo, int hi) {
         return Math.max(lo, Math.min(hi, v));
     }
 
+
+            //changes on screen joystick outputs (-180-180) to Mavlink inputs (-1000-1000)
     static int[] polarToXY(double angleDeg, double strength, int deadzone) {
         if (strength < deadzone) strength = 0;
 
@@ -327,6 +289,7 @@ public class ManualFragment extends Fragment implements WifiP2pController.Listen
         return new int[]{clamp(x, -1000, 1000), clamp(y, -1000, 1000)};
     }
 
+        //needs new implementation
     private final WebSocketClientTesting.WebSocketImageListener imageListener =
             bitmap -> requireActivity().runOnUiThread(() -> {
                 if (bitmap != null && isAdded()) {
@@ -371,6 +334,8 @@ public class ManualFragment extends Fragment implements WifiP2pController.Listen
         });
     }
 
+
+        //receives telemetry from drone phone, updates on screen
     @Override
     public void onMessageReceived(String message) {
         if (!isAdded()) return;
