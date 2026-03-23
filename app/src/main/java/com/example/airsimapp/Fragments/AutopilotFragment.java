@@ -6,6 +6,7 @@ import android.graphics.Matrix;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,6 +23,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.airsimapp.Activities.UserActivity;
+import com.example.airsimapp.Autopilot;
 import com.example.airsimapp.AutopilotCommand;
 import com.example.airsimapp.CommandAdapter;
 import com.example.airsimapp.GPS;
@@ -58,6 +60,8 @@ public class AutopilotFragment extends Fragment {
     public Date date = Calendar.getInstance().getTime();
     public Calendar calendar = Calendar.getInstance();
     private String selectedPattern = "Circle"; // default
+
+    Autopilot autopilot;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -218,6 +222,8 @@ public class AutopilotFragment extends Fragment {
         Button gpsButton = view.findViewById(R.id.GPSButton);
 
         gpsButton.setOnClickListener(v -> {
+            Log.e("Autopilot", "GPS Triggered");
+            autopilot = new Autopilot();
             String lat = latText.getText().toString().trim();
             String lon = longText.getText().toString().trim();
             String alt = altText.getText().toString().trim();
@@ -236,6 +242,11 @@ public class AutopilotFragment extends Fragment {
                     })
                     .setNegativeButton("Cancel", null)
                     .show();
+
+            //add autopilot command to the Queue
+            //Todo: fix time entry. As is, fixed at "1000". Need to translate instructions in to drone command
+            autopilot.addToCommandQueue(lat, lon, alt, "1000");
+
         });
 
         EditText direction = view.findViewById(R.id.directionInput);
@@ -243,6 +254,7 @@ public class AutopilotFragment extends Fragment {
         EditText time = view.findViewById(R.id.timeInput);
         Button headingButton = view.findViewById(R.id.headingButton);
         headingButton.setOnClickListener(v -> {
+            autopilot = new Autopilot();
             String dir = direction.getText().toString().trim();
             String speedText = speed.getText().toString().trim();
             String t = time.getText().toString().trim();
@@ -261,6 +273,10 @@ public class AutopilotFragment extends Fragment {
                     })
                     .setNegativeButton("Cancel", null)
                     .show();
+            Log.e("Autopilot", "Heading/Speed triggered");
+            //add autopilot command to the Queue
+            //Todo: Need to translate instructions into drone command.
+            autopilot.addToCommandQueue(dir, speedText, t);
         });
 
         EditText timePattern = view.findViewById(R.id.patternTime);
@@ -284,6 +300,12 @@ public class AutopilotFragment extends Fragment {
                     })
                     .setNegativeButton("Cancel", null)
                     .show();
+
+            //add autopilot command to the Queue
+            //Todo: fix yawRate, speed, and time entry. As is, fixed at 10, 10, and "1000". Also need to translate into drone commands. UI does not support any real patter, only "pattern 1, 2, 3" etc.
+            //Todo: crashes when trying to add pattern to queue, likely cause "pattern 1, 2 or 3" does not exist
+            Log.e("Autopilot", "Pattern triggered");
+            //autopilot.addToCommandQueue(pattern, 10, 10, "1000");
         });
 
 
