@@ -4,9 +4,7 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
 import android.graphics.Color;
-import android.graphics.Matrix;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.os.Build;
 import android.os.Bundle;
@@ -30,7 +28,6 @@ import com.example.airsimapp.Activities.StartupActivity;
 import com.example.airsimapp.Activities.UserActivity;
 import com.example.airsimapp.JoystickView;
 import com.example.airsimapp.R;
-import com.example.airsimapp.WebSocketClientTesting;
 import com.example.airsimapp.p2p.WifiP2pController;
 
 import java.util.List;
@@ -290,20 +287,7 @@ public class ManualFragment extends Fragment implements WifiP2pController.Listen
     }
 
         //needs new implementation
-    private final WebSocketClientTesting.WebSocketImageListener imageListener =
-            bitmap -> requireActivity().runOnUiThread(() -> {
-                if (bitmap != null && isAdded()) {
-                    Matrix matrix = new Matrix();
-                    matrix.postRotate(180);
-                    Bitmap rotated = Bitmap.createBitmap(
-                            bitmap, 0, 0,
-                            bitmap.getWidth(),
-                            bitmap.getHeight(),
-                            matrix, true
-                    );
-                    remoteView.setImageBitmap(rotated);
-                }
-            });
+
 
     @Override
     public void onPeersUpdated(List<WifiP2pDevice> peers) {

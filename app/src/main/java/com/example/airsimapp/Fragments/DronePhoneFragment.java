@@ -27,10 +27,8 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.example.airsimapp.Activities.StartupActivity;
-import com.example.airsimapp.AirSimFlightController;
 import com.example.airsimapp.PixhawkMavlinkUsb;
 import com.example.airsimapp.R;
-import com.example.airsimapp.WebSocketClientTesting;
 import com.example.airsimapp.flightControllerInterface;
 import com.example.airsimapp.p2p.WifiP2pController;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -54,7 +52,6 @@ public class DronePhoneFragment extends Fragment implements WifiP2pController.Li
     };
     private volatile boolean p2pConnected = false;
     private WebSocket websocketTest;
-    public WebSocketClientTesting webSocket = new WebSocketClientTesting();
 
     private TextView output;
     private TextView GPSLocation;
@@ -158,7 +155,7 @@ public class DronePhoneFragment extends Fragment implements WifiP2pController.Li
 
 
             //list of flight controllers that can be used
-        String[] controllers = {"Pixhawk", "Airsim"};
+        String[] controllers = {"Pixhawk"};
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
                 requireContext(),
                 android.R.layout.simple_spinner_dropdown_item,
@@ -171,14 +168,7 @@ public class DronePhoneFragment extends Fragment implements WifiP2pController.Li
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 String selectedController = (String) parent.getItemAtPosition(position);
-                if (selectedController.equals("AirSim")) {
-                    flightController = new AirSimFlightController();
-                    flightController.setMessageListener(message -> {
-                        if (webSocket != null) {
-                            webSocket.sendMessage(message);
-                        }
-                    });
-                }else if (selectedController.equals("Pixhawk")) {
+               if (selectedController.equals("Pixhawk")) {
                     //unimplemented
                 }
             }
