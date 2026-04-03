@@ -5,6 +5,7 @@ import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.net.wifi.p2p.WifiP2pDevice;
@@ -145,6 +146,18 @@ public class ManualFragment extends Fragment implements WifiP2pController.Listen
 
 
         return rootView;
+    }
+
+    public void onVideoFrameReceived(byte[] data)
+    {
+        if(!isAdded())return;
+        Bitmap bp = BitmapFactory.decodeByteArray(data, 0, data.length);
+        if (bp != null)
+        {
+            requireActivity().runOnUiThread(()->{
+                remoteView.setImageBitmap(bp);
+            });
+        }
     }
     private void sendControlPacket() {
 

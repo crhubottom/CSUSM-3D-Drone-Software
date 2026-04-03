@@ -6,6 +6,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
@@ -18,8 +19,12 @@ import android.os.Looper;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutput;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -34,6 +39,7 @@ public class WifiP2pController {
         void onPeersUpdated(List<WifiP2pDevice> peers);
         void onConnectionStatusChanged(String status);
         void onMessageReceived(String message);
+        void onVideoFrameReceived(byte[] data);
         void onSocketConnected(boolean isHost);
         void onError(String error);
     }
@@ -52,7 +58,8 @@ public class WifiP2pController {
 
     private ServerClass serverClass;
     private ClientClass clientClass;
-    private SendReceive sendReceive;
+    private TelemetrySendReceive telemetrySendReceive;
+    private VideoFeedSendReceive videoFeedSendReceive;
 
     private boolean receiverRegistered = false;
 
@@ -111,7 +118,7 @@ public class WifiP2pController {
     }
 
     public boolean isConnected() {
-        return sendReceive != null && sendReceive.isAliveAndConnected();
+        return telemetrySendReceive != null && telemetrySendReceive.isAliveAndConnected();
     }
 
     @SuppressLint("MissingPermission")
@@ -257,7 +264,7 @@ public class WifiP2pController {
             listener.onError("No socket connection available");
             return;
         }
-        sendReceive.write(message.getBytes());
+        telemetrySendReceive.write(message.getBytes());
     }
 
     public void shutdown() {
@@ -278,9 +285,9 @@ public class WifiP2pController {
     }
 
     private void closeSocketConnection() {
-        if (sendReceive != null) {
-            sendReceive.close();
-            sendReceive = null;
+        if (telemetrySendReceive != null) {
+            telemetrySendReceive.close();
+            telemetrySendReceive = null;
         }
     }
 
@@ -364,20 +371,19 @@ public class WifiP2pController {
                     }
                 }
             };
-
-    private class SendReceive extends Thread {
+private class TelemetrySendReceive extends Thread {
         private final Socket socket;
         private InputStream inputStream;
         private OutputStream outputStream;
         private volatile boolean closed = false;
 
-        public SendReceive(Socket socket) {
+        public TelemetrySendReceive(Socket socket) {
             this.socket = socket;
             try {
                 inputStream = socket.getInputStream();
                 outputStream = socket.getOutputStream();
             } catch (IOException e) {
-                listener.onError("Socket stream error: " + e.getMessage());
+                listener.onError("Telemetry stream error: " + e.getMessage());
             }
         }
 
@@ -406,8 +412,8 @@ public class WifiP2pController {
             } catch (Exception ignored) {
             }
 
-            if (sendReceive == this) {
-                sendReceive = null;
+            if (telemetrySendReceive == this) {
+                telemetrySendReceive = null;
             }
         }
 
@@ -456,55 +462,143 @@ public class WifiP2pController {
             }).start();
         }
     }
+    public class VideoFeedSendReceive extends Thread { //add video send receive class to send video frames
+        private final Socket socket;
+        public DataOutputStream dataOutputStream;
+        private volatile boolean closed = false;
+
+        public VideoFeedSendReceive(Socket socket) throws IOException {
+            this.socket = socket;
+            this.dataOutputStream = new DataOutputStream(socket.getOutputStream());
+        }
+
+        public boolean isAliveAndConnected() {
+            return !closed
+                    && socket != null
+                    && socket.isConnected()
+                    && !socket.isClosed();
+        }
+
+        public synchronized void close() {
+            closed = true;
+            try {
+                if(dataOutputStream != null) {
+                    dataOutputStream.close();
+                }
+            }catch(Exception ignored)
+            {
+            }
+            try{
+                if(socket != null && !socket.isClosed()) {
+                    socket.close();
+                }
+            }catch (Exception ignored)
+            {
+            }
+        }
+        public DataOutputStream getOutputStream()
+        {
+            return dataOutputStream;
+        }
+    }
 
     public class ServerClass extends Thread {
-        private Socket socket;
-        private ServerSocket serverSocket;
-        private volatile boolean closed = false;
+        private Socket telemSocket; //rename firsts socket to telemSocket
+        private Socket videoSocket; //added new videoSocket
+        private ServerSocket telemServerSocket; //rename first server socket to telemServerSocket
+        private ServerSocket videoServerSocket; //added new videoServerSocket
+
+        private TelemetrySendReceive telemSendReceive; //added specific sendReceive for telemetry
+        private VideoFeedSendReceive videoSendReceive; //added specific sendReceive for video feed
+        private volatile boolean
+                closed = false;
 
         @Override
         public void run() {
             try {
-                serverSocket = new ServerSocket(6000);
-                socket = serverSocket.accept();
+                telemServerSocket = new ServerSocket(6000);
+                videoServerSocket = new ServerSocket(7000); //added new server socket at port 7000 for video
 
-                if (closed) return;
-
-                closeSocketConnection();
-                sendReceive = new SendReceive(socket);
-                sendReceive.start();
-
-                mainHandler.post(() -> listener.onSocketConnected(true));
+                new Thread(() -> { //run telemetry on one thread
+                    try {
+                        telemSocket = telemServerSocket.accept();
+                        if (closed) return;
+                        telemSendReceive = new TelemetrySendReceive(telemSocket);
+                        telemSendReceive.start();
+                        checkIfBothConnected();
+                    } catch (IOException e) {
+                        handleError("Error telemetry: " + e.getMessage());
+                    }
+                }).start();
+                new Thread(() -> { //run video on another thread
+                    try {
+                        videoSocket = videoServerSocket.accept();
+                        if (closed) return;
+                        videoSendReceive = new VideoFeedSendReceive(videoSocket);
+                        videoSendReceive.start();
+                        checkIfBothConnected();
+                    } catch (IOException e) {
+                        handleError("Error Video: " + e.getMessage());
+                    }
+                }).start();
             } catch (IOException e) {
-                if (!closed) {
-                    mainHandler.post(() -> listener.onError("Server error: " + e.getMessage()));
-                }
+                handleError("Error server startup: " + e.getMessage());
+            }
+        }
+        private synchronized void checkIfBothConnected()
+        {
+            if(telemSocket != null && videoSocket != null)
+            {
+                mainHandler.post(()->listener.onSocketConnected(true));
             }
         }
 
+        private void handleError(String m)
+        {
+            if(!closed)
+            {
+                mainHandler.post(()-> listener.onError(m));
+            }
+        }
         public void close() {
             closed = true;
-
             try {
-                if (socket != null && !socket.isClosed()) socket.close();
+                if (telemSocket != null && !telemSocket.isClosed())
+                {
+                    telemSocket.close();
+                }
             } catch (Exception ignored) {
             }
-
             try {
-                if (serverSocket != null && !serverSocket.isClosed()) serverSocket.close();
+                if (videoSocket != null && !videoSocket.isClosed())
+                {
+                    videoSocket.close();
+                }
+            } catch (Exception ignored) {
+            }
+            try {
+                if (telemServerSocket != null && !telemServerSocket.isClosed()) telemServerSocket.close();
+            } catch (Exception ignored) {
+            }
+            try {
+                if (videoServerSocket != null && !videoServerSocket.isClosed()) videoServerSocket.close();
             } catch (Exception ignored) {
             }
         }
     }
 
     public class ClientClass extends Thread {
-        private final Socket socket;
+        private final Socket telemSocket;
+        private final Socket videoSocket;
+        private TelemetrySendReceive telemSendReceive;
+        private VideoFeedSendReceive videoSendReceive;
         private final String hostAddress;
         private volatile boolean closed = false;
 
         public ClientClass(InetAddress hostAddress) {
             this.hostAddress = hostAddress.getHostAddress();
-            this.socket = new Socket();
+            this.telemSocket = new Socket();
+            this.videoSocket = new Socket();
         }
 
         @Override
@@ -514,22 +608,40 @@ public class WifiP2pController {
             while (attempts < 10 && !closed) {
                 try {
                     Thread.sleep(1000);
-                    socket.connect(new InetSocketAddress(hostAddress, 6000), 3000);
+                    telemSocket.connect(new InetSocketAddress(hostAddress, 6000), 3000);
+                    videoSocket.connect(new InetSocketAddress(hostAddress, 7000), 3000);
 
                     if (closed) return;
 
-                    closeSocketConnection();
-                    sendReceive = new SendReceive(socket);
-                    sendReceive.start();
+                    telemSendReceive = new TelemetrySendReceive(telemSocket);
+                    telemSendReceive.start();
 
-                    mainHandler.post(() -> listener.onSocketConnected(false));
+                    videoSendReceive = new VideoFeedSendReceive(videoSocket);
+                    videoSendReceive.start();
+
+                    mainHandler.post(()->listener.onSocketConnected(false));
                     return;
 
                 } catch (Exception e) {
                     attempts++;
+                    try{
+                        if(telemSocket != null)
+                        {
+                            telemSocket.close();
+                        }
+                    }catch(Exception ignored)
+                    {
+                    }
+                    try{
+                        if(videoSocket != null)
+                        {
+                            videoSocket.close();
+                        }
+                    }catch(Exception ignored)
+                    {
+                    }
                 }
             }
-
             if (!closed) {
                 mainHandler.post(() -> listener.onError("Client could not connect after retries"));
             }
@@ -538,11 +650,17 @@ public class WifiP2pController {
         public void close() {
             closed = true;
             try {
-                if (!socket.isClosed()) socket.close();
+                if (!telemSocket.isClosed()) telemSocket.close();
             } catch (Exception ignored) {
             }
+            try
+            {
+                if(!videoSocket.isClosed()) videoSocket.close();
+            }catch (Exception ignored)
+            {
+            }
         }
-    }
+}
 
     public void notifyStatus(String status) {
         listener.onConnectionStatusChanged(status);

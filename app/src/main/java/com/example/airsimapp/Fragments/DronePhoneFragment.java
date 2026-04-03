@@ -3,11 +3,15 @@ package com.example.airsimapp.Fragments;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
+import android.util.Size;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,6 +25,9 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.camera.core.CameraSelector;
+import androidx.camera.core.ImageAnalysis;
+import androidx.camera.core.ImageProxy;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
 import androidx.core.content.ContextCompat;
@@ -35,8 +42,11 @@ import com.example.airsimapp.flightControllerInterface;
 import com.example.airsimapp.p2p.WifiP2pController;
 import com.google.common.util.concurrent.ListenableFuture;
 
+import java.io.ByteArrayOutputStream;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
 
 import okhttp3.WebSocket;
 
@@ -80,6 +90,7 @@ public class DronePhoneFragment extends Fragment implements WifiP2pController.Li
     private String command;
     private String GPScoordinates = "No GPS data yet";
     private final Handler telemetryHandler = new Handler(Looper.getMainLooper());
+    private WifiP2pController.VideoFeedSendReceive videoSendReceive;
 
 
 
@@ -195,7 +206,7 @@ public class DronePhoneFragment extends Fragment implements WifiP2pController.Li
 
         if (allPermissionsGranted()) {
             //camera needs new implementation
-            //startCamera();
+            startCamera();
         } else {
             requestPermissions(REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS);
         }
@@ -312,108 +323,86 @@ public class DronePhoneFragment extends Fragment implements WifiP2pController.Li
             }
         }
     }
-    /*
-    private void startCamera() {
-        cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext());
-        cameraProviderFuture.addListener(
-                this::bindCameraUseCases,
-                ContextCompat.getMainExecutor(requireContext())
-        );
-    }
-
-
-    @OptIn(markerClass = ExperimentalGetImage.class)
-    private void bindCameraUseCases() {
-        try {
-            ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
-
-            Preview preview = new Preview.Builder().build();
-            // preview.setSurfaceProvider(previewView.getSurfaceProvider());
-
-            ImageAnalysis analysis = new ImageAnalysis.Builder()
-                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                    .build();
-
-            analysis.setAnalyzer(
-                    ContextCompat.getMainExecutor(requireContext()),
-                    imageProxy -> {
-                        Image mediaImage = imageProxy.getImage();
-                        if (mediaImage != null) {
-                            sendFrame(mediaImage);
-                        }
-                        imageProxy.close();
+    //adding new startCamera:
+    private void startCamera()
+    {
+        ListenableFuture<ProcessCameraProvider> cPF = ProcessCameraProvider.getInstance(requireContext());
+        cPF.addListener(()-> {
+            try{
+                ProcessCameraProvider cP = cPF.get();
+                ImageAnalysis iA = new ImageAnalysis.Builder().setTargetResolution(new Size(320, 240)).setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build();
+                iA.setAnalyzer(Executors.newSingleThreadExecutor(), image -> {
+                    Bitmap bitmap = imageProxyToBitmap(image);
+                    if(videoSendReceive != null && bitmap != null)//change
+                    {
+                        Log.d("CAMERA_DEBUG", "Bitmap is null? " + (bitmap == null));
+                        sendFrame(bitmap);
                     }
+                    image.close();
+                });
+                CameraSelector cS = CameraSelector.DEFAULT_BACK_CAMERA;
+                cP.unbindAll();
+                cP.bindToLifecycle(this, cS, iA);
+            }catch(Exception e)
+            {
+                e.printStackTrace();
+            }
+        }, ContextCompat.getMainExecutor(requireContext()));
+    }
+    //use this for new camera stream
+    //adding new sendFrame:
+    private void sendFrame(Bitmap bp)
+    {
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            bp.compress(Bitmap.CompressFormat.JPEG, 50, baos);
+            byte[] frame = baos.toByteArray();
+            videoSendReceive.dataOutputStream.writeInt(frame.length);//change to videoSendReceive
+            videoSendReceive.dataOutputStream.write(frame);//change to videoSendReceive
+            videoSendReceive.dataOutputStream.flush();//change to videoSendReceive
+        }catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
+    //adding new ImageProxytoBitmap
+    private Bitmap imageProxyToBitmap(ImageProxy i) {
+        try {
+            //YUV format for image
+            ByteBuffer brightness = i.getPlanes()[0].getBuffer(); //brightness of image
+            ByteBuffer blue = i.getPlanes()[1].getBuffer(); //blue color info
+            ByteBuffer red = i.getPlanes()[2].getBuffer(); //red color info
+
+            int ySize = brightness.remaining();
+            int uSize = blue.remaining();
+            int vSize = red.remaining();
+
+            byte[] nv21 = new byte[ySize + uSize + vSize];
+
+            brightness.get(nv21, 0, ySize);
+            red.get(nv21, ySize, vSize);
+            blue.get(nv21, ySize + vSize, uSize);
+
+            android.graphics.YuvImage yuvImage =
+                    new android.graphics.YuvImage(nv21, android.graphics.ImageFormat.NV21, i.getWidth(), i.getHeight(), null);
+
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            yuvImage.compressToJpeg(
+                    new android.graphics.Rect(0, 0, i.getWidth(), i.getHeight()),
+                    50,
+                    out
             );
 
-            cameraProvider.unbindAll();
-            cameraProvider.bindToLifecycle(
-                    this,
-                    CameraSelector.DEFAULT_BACK_CAMERA,
-                    preview,
-                    analysis
-            );
+            byte[] jpegBytes = out.toByteArray();
+            return BitmapFactory.decodeByteArray(jpegBytes, 0, jpegBytes.length);
 
         } catch (Exception e) {
-            Log.e("DronePhoneFragment", "camera init failed", e);
+            e.printStackTrace();
+            return null;
         }
     }
-
-     */
-
-
-                        //use this for new camera stream
-
-    /*
-    public void sendFrame(Image image) {
-        if (webSocket == null || image == null) return;
-
-        byte[] jpeg = yuvToJpeg(image, 50);
-        webSocket.sendByte(jpeg);
-    }
-
-    private byte[] yuvToJpeg(Image image, int quality) {
-        int width = image.getWidth();
-        int height = image.getHeight();
-        ByteBuffer yBuffer = image.getPlanes()[0].getBuffer();
-        ByteBuffer uBuffer = image.getPlanes()[1].getBuffer();
-        ByteBuffer vBuffer = image.getPlanes()[2].getBuffer();
-
-        int ySize = yBuffer.remaining();
-        byte[] nv21 = new byte[width * height * 3 / 2];
-
-        yBuffer.get(nv21, 0, ySize);
-
-        int uvPixelStride = image.getPlanes()[1].getPixelStride();
-        int uvRowStride = image.getPlanes()[1].getRowStride();
-        byte[] uBytes = new byte[uBuffer.remaining()];
-        byte[] vBytes = new byte[vBuffer.remaining()];
-        uBuffer.get(uBytes);
-        vBuffer.get(vBytes);
-
-        int uvPos = ySize;
-        for (int row = 0; row < height / 2; row++) {
-            for (int col = 0; col < width / 2; col++) {
-                int uvIndex = row * uvRowStride + col * uvPixelStride;
-                if (uvIndex < vBytes.length && uvIndex < uBytes.length) {
-                    nv21[uvPos++] = vBytes[uvIndex];
-                    nv21[uvPos++] = uBytes[uvIndex];
-                }
-            }
-        }
-
-        YuvImage yuvImage = new YuvImage(nv21, ImageFormat.NV21, width, height, null);
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        yuvImage.compressToJpeg(new Rect(0, 0, width, height), quality, baos);
-
-        return baos.toByteArray();
-    }
-
-     */
-
     // WifiP2pController.Listener callbacks
-
-
-        //updates peer list
+    //updates peer list
     @Override
     public void onPeersUpdated(List<WifiP2pDevice> peers) {
         if (!isAdded()) return;
@@ -486,6 +475,11 @@ public class DronePhoneFragment extends Fragment implements WifiP2pController.Li
                 });
             }
         }
+    }
+
+    @Override
+    public void onVideoFrameReceived(byte[] data) {
+
     }
 
     @Override
