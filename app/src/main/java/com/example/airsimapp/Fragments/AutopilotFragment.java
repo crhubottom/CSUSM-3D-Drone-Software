@@ -285,6 +285,7 @@ public class AutopilotFragment extends Fragment {
         patternButton.setOnClickListener(v -> {
             String pattern = spinner.getSelectedItem().toString();
             String timePatternText = timePattern.getText().toString().trim();
+            autopilot = new Autopilot();
 
             if(pattern.isEmpty() || timePatternText.isEmpty()){
                 Toast.makeText(getContext(), "Please fill in all Pattern instructions", Toast.LENGTH_SHORT).show();
@@ -304,8 +305,8 @@ public class AutopilotFragment extends Fragment {
             //add autopilot command to the Queue
             //Todo: fix yawRate, speed, and time entry. As is, fixed at 10, 10, and "1000". Also need to translate into drone commands. UI does not support any real patter, only "pattern 1, 2, 3" etc.
             //Todo: crashes when trying to add pattern to queue, likely cause "pattern 1, 2 or 3" does not exist
-            Log.e("Autopilot", "Pattern triggered");
-            //autopilot.addToCommandQueue(pattern, 10, 10, "1000");
+            Log.e("Autopilot", "Pattern triggered: " + pattern);
+            autopilot.addToCommandQueue(pattern, 10, 10, "1000");
         });
 
 
