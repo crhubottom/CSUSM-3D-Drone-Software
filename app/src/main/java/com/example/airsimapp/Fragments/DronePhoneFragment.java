@@ -336,7 +336,7 @@ public class DronePhoneFragment extends Fragment implements WifiP2pController.Li
                     if(videoSendReceive != null && bitmap != null)//change
                     {
                         Log.d("CAMERA_DEBUG", "Bitmap is null? " + (bitmap == null));
-                        sendFrame(bitmap);
+                        p2p.sendFrame(bitmap);
                     }
                     image.close();
                 });
@@ -351,20 +351,7 @@ public class DronePhoneFragment extends Fragment implements WifiP2pController.Li
     }
     //use this for new camera stream
     //adding new sendFrame:
-    private void sendFrame(Bitmap bp)
-    {
-        try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            bp.compress(Bitmap.CompressFormat.JPEG, 50, baos);
-            byte[] frame = baos.toByteArray();
-            videoSendReceive.dataOutputStream.writeInt(frame.length);//change to videoSendReceive
-            videoSendReceive.dataOutputStream.write(frame);//change to videoSendReceive
-            videoSendReceive.dataOutputStream.flush();//change to videoSendReceive
-        }catch(Exception e)
-        {
-            e.printStackTrace();
-        }
-    }
+
     //adding new ImageProxytoBitmap
     private Bitmap imageProxyToBitmap(ImageProxy i) {
         try {

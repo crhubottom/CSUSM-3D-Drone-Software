@@ -20,6 +20,7 @@ import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -266,6 +267,20 @@ public class WifiP2pController {
         }
         telemetrySendReceive.write(message.getBytes());
     }
+    public void sendFrame(Bitmap bp)
+    {
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            bp.compress(Bitmap.CompressFormat.JPEG, 50, baos);
+            byte[] frame = baos.toByteArray();
+            videoFeedSendReceive.dataOutputStream.writeInt(frame.length);//change to videoSendReceive
+            videoFeedSendReceive.dataOutputStream.write(frame);//change to videoSendReceive
+            videoFeedSendReceive.dataOutputStream.flush();//change to videoSendReceive
+        }catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
 
     public void shutdown() {
         closeSocketConnection();
@@ -285,9 +300,11 @@ public class WifiP2pController {
     }
 
     private void closeSocketConnection() {
-        if (telemetrySendReceive != null) {
+        if (telemetrySendReceive != null && videoFeedSendReceive != null) {
             telemetrySendReceive.close();
+            videoFeedSendReceive.close();
             telemetrySendReceive = null;
+            videoFeedSendReceive = null;
         }
     }
 
@@ -465,6 +482,7 @@ private class TelemetrySendReceive extends Thread {
     public class VideoFeedSendReceive extends Thread { //add video send receive class to send video frames
         private final Socket socket;
         public DataOutputStream dataOutputStream;
+        public DataInputStream dataInputStream;
         private volatile boolean closed = false;
 
         public VideoFeedSendReceive(Socket socket) throws IOException {
@@ -482,23 +500,32 @@ private class TelemetrySendReceive extends Thread {
         public synchronized void close() {
             closed = true;
             try {
-                if(dataOutputStream != null) {
+                if (dataOutputStream != null) {
                     dataOutputStream.close();
                 }
-            }catch(Exception ignored)
-            {
+            } catch (Exception ignored) {
             }
-            try{
-                if(socket != null && !socket.isClosed()) {
+            try {
+                if (socket != null && !socket.isClosed()) {
                     socket.close();
                 }
-            }catch (Exception ignored)
-            {
+            } catch (Exception ignored) {
             }
         }
-        public DataOutputStream getOutputStream()
-        {
-            return dataOutputStream;
+
+        @Override
+        public void run() {
+            while (isAliveAndConnected()) {
+                try {
+                    byte[] data = new byte[1024];
+                    dataInputStream.readFully(data);
+                    mainHandler.post(()->listener.onVideoFrameReceived(data));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                close();
+            }
         }
     }
 
