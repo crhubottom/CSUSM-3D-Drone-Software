@@ -488,6 +488,7 @@ private class TelemetrySendReceive extends Thread {
         public VideoFeedSendReceive(Socket socket) throws IOException {
             this.socket = socket;
             this.dataOutputStream = new DataOutputStream(socket.getOutputStream());
+            this.dataInputStream = new DataInputStream(socket.getInputStream());
         }
 
         public boolean isAliveAndConnected() {
@@ -517,9 +518,18 @@ private class TelemetrySendReceive extends Thread {
         public void run() {
             while (isAliveAndConnected()) {
                 try {
-                    byte[] data = new byte[1024];
-                    dataInputStream.readFully(data);
-                    mainHandler.post(()->listener.onVideoFrameReceived(data));
+                    while(isAliveAndConnected())
+                    {
+                        int length = dataInputStream.readInt();
+                        if(length <=0 || length > 10_000_000)
+                        {
+                            throw new IOException("Invalid frame size: " + length);
+                        }
+                        byte[] data = new byte[length];
+                        dataInputStream.readFully(data);
+
+                        mainHandler.post(()->listener.onVideoFrameReceived(data));
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -562,6 +572,7 @@ private class TelemetrySendReceive extends Thread {
                         videoSocket = videoServerSocket.accept();
                         if (closed) return;
                         videoSendReceive = new VideoFeedSendReceive(videoSocket);
+                        videoFeedSendReceive = videoSendReceive;
                         videoSendReceive.start();
                         checkIfBothConnected();
                     } catch (IOException e) {
@@ -644,6 +655,7 @@ private class TelemetrySendReceive extends Thread {
                     telemSendReceive.start();
 
                     videoSendReceive = new VideoFeedSendReceive(videoSocket);
+                    videoFeedSendReceive = videoSendReceive;
                     videoSendReceive.start();
 
                     mainHandler.post(()->listener.onSocketConnected(false));
