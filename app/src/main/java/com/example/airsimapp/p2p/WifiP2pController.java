@@ -15,6 +15,7 @@ import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
@@ -273,6 +274,11 @@ public class WifiP2pController {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             bp.compress(Bitmap.CompressFormat.JPEG, 50, baos);
             byte[] frame = baos.toByteArray();
+            if(videoFeedSendReceive == null || videoFeedSendReceive.dataOutputStream == null)
+            {
+                listener.onError("Video stream not ready");
+                return;
+            }
             videoFeedSendReceive.dataOutputStream.writeInt(frame.length);//change to videoSendReceive
             videoFeedSendReceive.dataOutputStream.write(frame);//change to videoSendReceive
             videoFeedSendReceive.dataOutputStream.flush();//change to videoSendReceive
@@ -487,8 +493,14 @@ private class TelemetrySendReceive extends Thread {
 
         public VideoFeedSendReceive(Socket socket) throws IOException {
             this.socket = socket;
-            this.dataOutputStream = new DataOutputStream(socket.getOutputStream());
-            this.dataInputStream = new DataInputStream(socket.getInputStream());
+            try{
+                this.dataOutputStream = new DataOutputStream(socket.getOutputStream());
+                this.dataInputStream = new DataInputStream(socket.getInputStream());
+                Log.d("video", "constructor: input=" + (dataInputStream != null));
+            }catch (IOException e)
+            {
+                e.printStackTrace();
+            }
         }
 
         public boolean isAliveAndConnected() {
@@ -516,7 +528,12 @@ private class TelemetrySendReceive extends Thread {
 
         @Override
         public void run() {
-            while (isAliveAndConnected()) {
+            Log.d("Video", "run strated: input=" + (dataInputStream != null));
+            if(dataInputStream == null)
+            {
+                Log.e("Video", "dataInputSTream is Null before loop");
+                return;
+            }
                 try {
                     while(isAliveAndConnected())
                     {
@@ -536,8 +553,7 @@ private class TelemetrySendReceive extends Thread {
 
                 close();
             }
-        }
-    }
+}
 
     public class ServerClass extends Thread {
         private Socket telemSocket; //rename firsts socket to telemSocket
