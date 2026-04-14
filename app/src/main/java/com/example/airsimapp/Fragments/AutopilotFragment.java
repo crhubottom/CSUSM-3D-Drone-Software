@@ -33,7 +33,6 @@ import com.example.airsimapp.InstructionAdapter;
 import com.example.airsimapp.InstructionItem;
 import com.example.airsimapp.LoiterPattern;
 import com.example.airsimapp.R;
-
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -209,18 +208,18 @@ public class AutopilotFragment extends Fragment {
             }
             AutopilotCommand command = queue.get(0);
 
-                //AutopilotCommand command = queue.get(0);
-                if (command.getCommandComplete()){
-                    UserActivity.getOrchestrator().getAutopilot().getCommandQueue().remove(command);
-                    requireActivity().runOnUiThread(() -> {
-                        commandAdapter.notifyDataSetChanged(); // Updates the command queue if command is complete
-                    });
+            //AutopilotCommand command = queue.get(0);
+            if (command.getCommandComplete()){
+                UserActivity.getOrchestrator().getAutopilot().getCommandQueue().remove(command);
+                requireActivity().runOnUiThread(() -> {
+                    commandAdapter.notifyDataSetChanged(); // Updates the command queue if command is complete
+                });
 
-                    if (!queue.isEmpty()) {
-                        handler.postDelayed(this, 100);
-                    }
-                    return;
-                } else {
+                if (!queue.isEmpty()) {
+                    handler.postDelayed(this, 100);
+                }
+                return;
+            } else {
 
                 // Recalculate command before sending
                 if (command instanceof HeadingAndSpeed) {
@@ -239,22 +238,22 @@ public class AutopilotFragment extends Fragment {
                             UserActivity.getOrchestrator().getAutopilot().getCommandTime(),
                             calendar);
                 } else if (command instanceof LoiterPattern) {
-                            ((LoiterPattern) command).calculateCommand(
-                                    UserActivity.getOrchestrator().getAutopilot().getCurrentHeading(),
-                                    UserActivity.getOrchestrator().getAutopilot().getYawRate(),
-                                    UserActivity.getOrchestrator().getAutopilot().getVelocity(),
-                                    UserActivity.getOrchestrator().getAutopilot().getCommandTime(),
-                                    calendar
-                            );
+                    ((LoiterPattern) command).calculateCommand(
+                            UserActivity.getOrchestrator().getAutopilot().getCurrentHeading(),
+                            UserActivity.getOrchestrator().getAutopilot().getYawRate(),
+                            UserActivity.getOrchestrator().getAutopilot().getVelocity(),
+                            UserActivity.getOrchestrator().getAutopilot().getCommandTime(),
+                            calendar
+                    );
                 }
-                    String msg = command.getCommandMessage();
-                    if (msg != null && !msg.isEmpty()) {
-                        UserActivity.getOrchestrator().processCommand(msg, AutopilotFragment.this::sendCommand);
-                       // Log.d(TAG, "Sent: " + msg);
-                    }
+                String msg = command.getCommandMessage();
+                if (msg != null && !msg.isEmpty()) {
+                    UserActivity.getOrchestrator().processCommand(msg, AutopilotFragment.this::sendCommand);
+                    // Log.d(TAG, "Sent: " + msg);
+                }
                 handler.postDelayed(this, 100); // Repeat every 100ms (10 times per second)
-                    }
-                }
+            }
+        }
     };
 
     private void sendCommand(String s) {
@@ -264,6 +263,7 @@ public class AutopilotFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        /*
         UserActivity.getOrchestrator().webSocket.setWebSocketMessageListener(new WebSocketClientTesting.WebSocketMessageListener() {
             @Override
             public void onMessageReceived(String msg) {
@@ -290,17 +290,21 @@ public class AutopilotFragment extends Fragment {
 //                });
             }
         });
+
+         */
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        UserActivity.getOrchestrator().webSocket.setWebSocketMessageListener(null);
+
+        //UserActivity.getOrchestrator().webSocket.setWebSocketMessageListener(null);
     }
 
     @Override
     public void onHiddenChanged(boolean hidden) {
         super.onHiddenChanged(hidden);
+        /*
         if (!hidden) {
             // this fragment is now visible
             UserActivity.getOrchestrator().webSocket.setWebSocketMessageListener(new WebSocketClientTesting.WebSocketMessageListener() {
@@ -341,6 +345,8 @@ public class AutopilotFragment extends Fragment {
             // fragment is now hidden
             UserActivity.getOrchestrator().webSocket.setWebSocketMessageListener(null);
         }
+
+         */
     }
 
 
