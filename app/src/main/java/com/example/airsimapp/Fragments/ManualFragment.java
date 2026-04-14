@@ -124,6 +124,8 @@ public class ManualFragment extends Fragment implements WifiP2pController.Listen
         });
 
         JoystickView joystickLeft = rootView.findViewById(R.id.joystick2);
+        joystickLeft.noLockLeftY();
+        joystickLeft.setY(450);
         JoystickView joystickRight = rootView.findViewById(R.id.joystick);
                 //left joystick
         joystickLeft.setJoystickListener((angle, strength) -> {

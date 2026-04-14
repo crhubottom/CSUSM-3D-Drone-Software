@@ -49,6 +49,8 @@ public class  Autopilot  {
             Log.e("Autopilot", "Invalid number format in input", e);
             // Optional: show a message or skip
         }
+
+        Log.e("Autopilot", "Command added to queue: lat: " + lat + " lon: " + lon + " alt: " + alt + " time: " + time);
     }
     public void addToCommandQueue(String heading, String speed, String time){
         if (time == null || time.length() < 4 || time.length() > 5) {
@@ -69,6 +71,9 @@ public class  Autopilot  {
         } catch (Exception e) {
             Log.e("Autopilot", "Unexpected error: " + e.getMessage());
         }
+
+        Log.e("Autopilot", "Command added to queue: Heading: " + heading + ", Speed: " + speed + ", Time: " + time);
+
     }
     public void addToCommandQueue(String loiterPattern, float yawRate, float speed, String time){
         if (time == null || time.length() < 4 || time.length() > 5) {
@@ -87,6 +92,8 @@ public class  Autopilot  {
         } catch (Exception e) {
             Log.e("Autopilot", "Unexpected error: " + e.getMessage());
         }
+
+        Log.e("Autopilot", "Command added to queue: Pattern : " + loiterPattern + "yawRate : " + yawRate + " speed: " + speed + " time: " + time);
     }
 
     public float getCurrentHeading() {

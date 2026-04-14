@@ -15,7 +15,7 @@ public class JoystickView extends View {
 
     private Bitmap baseBitmap;
     private Bitmap handleBitmap;
-
+    private Boolean right;
     private float centerX, centerY;
     private float baseRadius;
     private float handleX, handleY;
@@ -33,6 +33,7 @@ public class JoystickView extends View {
 
     private void init() {
         basePaint = new Paint();
+        right=true;
         basePaint.setColor(Color.GRAY);
         basePaint.setStyle(Paint.Style.FILL);
         basePaint.setAlpha(150); // transparency (0 = fully transparent, 255 = fully opaque)
@@ -48,7 +49,7 @@ public class JoystickView extends View {
         centerX = w / 2f;
         centerY = h / 2f;
         baseRadius = Math.min(w, h) / 2f * 0.8f;
-        resetHandle();
+        resetHandle(right);
     }
 
 
@@ -89,7 +90,7 @@ public class JoystickView extends View {
                 break;
 
             case MotionEvent.ACTION_UP:
-                resetHandle();
+                resetHandle(right);
                 invalidate();
                 if (listener != null) {
                     listener.onMove(0, 0);
@@ -99,15 +100,22 @@ public class JoystickView extends View {
         return true;
     }
 
-    private void resetHandle() {
+    private void resetHandle(boolean right) {
         handleX = centerX;
-        handleY = centerY;
+        if(right) {
+            handleY = centerY;
+        }
     }
 
     public void setJoystickListener(JoystickListener listener) {
         this.listener = listener;
     }
-
+    public void noLockLeftY(){
+        right=false;
+    }
+    public void setY(float y){
+        handleY = y;
+    }
     public interface JoystickListener {
         void onMove(double angle, double strength);
     }
