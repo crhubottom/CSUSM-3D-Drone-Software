@@ -3,11 +3,16 @@ package com.example.airsimapp.Fragments;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.ImageFormat;
+import android.graphics.Rect;
+import android.graphics.YuvImage;
+import android.media.Image;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,20 +26,26 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.OptIn;
+import androidx.camera.core.CameraSelector;
+import androidx.camera.core.ExperimentalGetImage;
+import androidx.camera.core.ImageAnalysis;
+import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.example.airsimapp.Activities.StartupActivity;
-import com.example.airsimapp.AirSimFlightController;
 import com.example.airsimapp.PixhawkMavlinkUsb;
 import com.example.airsimapp.R;
-import com.example.airsimapp.WebSocketClientTesting;
 import com.example.airsimapp.flightControllerInterface;
 import com.example.airsimapp.p2p.WifiP2pController;
 import com.google.common.util.concurrent.ListenableFuture;
 
+import java.io.ByteArrayOutputStream;
+import java.nio.ByteBuffer;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -54,7 +65,6 @@ public class DronePhoneFragment extends Fragment implements WifiP2pController.Li
     };
     private volatile boolean p2pConnected = false;
     private WebSocket websocketTest;
-    public WebSocketClientTesting webSocket = new WebSocketClientTesting();
 
     private TextView output;
     private TextView GPSLocation;
@@ -72,6 +82,8 @@ public class DronePhoneFragment extends Fragment implements WifiP2pController.Li
 
     private WifiP2pController p2p;
     private ListenableFuture<ProcessCameraProvider> cameraProviderFuture;
+    private volatile byte[] latestSnapshot;
+    private final Object snapshotLock = new Object();
 
     private final List<String> peerNames = new ArrayList<>();
     private ArrayAdapter<String> peerAdapter;
@@ -110,7 +122,23 @@ public class DronePhoneFragment extends Fragment implements WifiP2pController.Li
             telemetryHandler.postDelayed(this, 250);
         }
     };
+    private final Handler cameraHandler = new Handler(Looper.getMainLooper());
 
+    private final Runnable cameraRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (!isAdded()) return;
+
+            if (p2p != null && p2p.isCameraConnected()) {
+                byte[] snapshot = getSnapshotJpeg();
+                if (snapshot != null) {
+                    p2p.sendCameraBytes(snapshot);
+                }
+            }
+
+            cameraHandler.postDelayed(this, 100);
+        }
+    };
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
@@ -158,7 +186,7 @@ public class DronePhoneFragment extends Fragment implements WifiP2pController.Li
 
 
             //list of flight controllers that can be used
-        String[] controllers = {"Pixhawk", "Airsim"};
+        String[] controllers = {"Pixhawk"};
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
                 requireContext(),
                 android.R.layout.simple_spinner_dropdown_item,
@@ -171,14 +199,7 @@ public class DronePhoneFragment extends Fragment implements WifiP2pController.Li
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 String selectedController = (String) parent.getItemAtPosition(position);
-                if (selectedController.equals("AirSim")) {
-                    flightController = new AirSimFlightController();
-                    flightController.setMessageListener(message -> {
-                        if (webSocket != null) {
-                            webSocket.sendMessage(message);
-                        }
-                    });
-                }else if (selectedController.equals("Pixhawk")) {
+               if (selectedController.equals("Pixhawk")) {
                     //unimplemented
                 }
             }
@@ -194,8 +215,7 @@ public class DronePhoneFragment extends Fragment implements WifiP2pController.Li
         });
 
         if (allPermissionsGranted()) {
-            //camera needs new implementation
-            //startCamera();
+            startCamera();
         } else {
             requestPermissions(REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS);
         }
@@ -217,6 +237,7 @@ public class DronePhoneFragment extends Fragment implements WifiP2pController.Li
         super.onPause();
         pixhawk.close();
         telemetryHandler.removeCallbacks(telemetryRunnable);
+        cameraHandler.removeCallbacks(cameraRunnable);
 
         if (p2p != null) {
             p2p.unregister();
@@ -227,6 +248,7 @@ public class DronePhoneFragment extends Fragment implements WifiP2pController.Li
         super.onDestroyView();
 
         telemetryHandler.removeCallbacks(telemetryRunnable);
+        cameraHandler.removeCallbacks(cameraRunnable);
 
         if (p2p != null) {
             p2p.shutdown();
@@ -288,7 +310,7 @@ public class DronePhoneFragment extends Fragment implements WifiP2pController.Li
 
         if (requestCode == REQUEST_CODE_PERMISSIONS) {
             if (allPermissionsGranted()) {
-                //startCamera();
+                startCamera();
             } else {
                 Toast.makeText(requireContext(),
                         "Permissions not granted by the user.",
@@ -312,7 +334,7 @@ public class DronePhoneFragment extends Fragment implements WifiP2pController.Li
             }
         }
     }
-    /*
+
     private void startCamera() {
         cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext());
         cameraProviderFuture.addListener(
@@ -339,7 +361,7 @@ public class DronePhoneFragment extends Fragment implements WifiP2pController.Li
                     imageProxy -> {
                         Image mediaImage = imageProxy.getImage();
                         if (mediaImage != null) {
-                            sendFrame(mediaImage);
+                            captureFrameForP2p(mediaImage);
                         }
                         imageProxy.close();
                     }
@@ -358,17 +380,27 @@ public class DronePhoneFragment extends Fragment implements WifiP2pController.Li
         }
     }
 
-     */
+
+    private byte[] getSnapshotJpeg() {
+        synchronized (snapshotLock) {
+            return latestSnapshot;
+        }
+    }
+
+    private void setLatestSnapshot(byte[] jpeg) {
+        synchronized (snapshotLock) {
+            latestSnapshot = jpeg;
+        }
+    }
 
 
-                        //use this for new camera stream
 
-    /*
-    public void sendFrame(Image image) {
-        if (webSocket == null || image == null) return;
+
+    public void captureFrameForP2p(Image image) {
+        if (image == null) return;
 
         byte[] jpeg = yuvToJpeg(image, 50);
-        webSocket.sendByte(jpeg);
+        setLatestSnapshot(jpeg);
     }
 
     private byte[] yuvToJpeg(Image image, int quality) {
@@ -408,7 +440,6 @@ public class DronePhoneFragment extends Fragment implements WifiP2pController.Li
         return baos.toByteArray();
     }
 
-     */
 
     // WifiP2pController.Listener callbacks
 
@@ -489,13 +520,22 @@ public class DronePhoneFragment extends Fragment implements WifiP2pController.Li
     }
 
     @Override
+    public void onCameraBytesReceieved(byte[] data) {
+
+    }
+
+
+    @Override
     public void onSocketConnected(boolean isHost) {
         if (!isAdded()) return;
 
         p2pConnected = true;
 
         telemetryHandler.removeCallbacks(telemetryRunnable);
+        cameraHandler.removeCallbacks(cameraRunnable);
+
         telemetryHandler.post(telemetryRunnable);
+        cameraHandler.post(cameraRunnable);
 
         requireActivity().runOnUiThread(() -> {
             Toast.makeText(

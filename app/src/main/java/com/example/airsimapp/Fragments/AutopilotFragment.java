@@ -33,7 +33,6 @@ import com.example.airsimapp.InstructionAdapter;
 import com.example.airsimapp.InstructionItem;
 import com.example.airsimapp.LoiterPattern;
 import com.example.airsimapp.R;
-import com.example.airsimapp.WebSocketClientTesting;
 
 import java.util.ArrayList;
 import java.util.Calendar;
