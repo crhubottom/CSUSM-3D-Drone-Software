@@ -1,17 +1,22 @@
 package com.example.airsimapp.Fragments;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
-import android.graphics.Matrix;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
+import android.net.wifi.p2p.WifiP2pDevice;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -21,252 +26,386 @@ import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
+import com.example.airsimapp.Activities.StartupActivity;
 import com.example.airsimapp.Activities.UserActivity;
+import com.example.airsimapp.JoystickView;
 import com.example.airsimapp.R;
-import com.example.airsimapp.WebSocketClientTesting;
+import com.example.airsimapp.p2p.WifiP2pController;
 
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashSet;
+import java.sql.Time;
+import java.time.LocalTime;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
+import java.util.Locale;
 
-import okhttp3.Response;
+public class ManualFragment extends Fragment implements WifiP2pController.Listener {
 
-public class ManualFragment extends Fragment  {
     private static final String TAG = "ManualFragment";
-    private static final int REQUEST_CODE_PERMISSIONS = 10;
-    private static final String[] REQUIRED_PERMISSIONS = {Manifest.permission.CAMERA};
-    //private TextView output;
+    private static final int REQUEST_CODE_P2P = 2001;
+
+    private WifiP2pController p2p;
+    private int armed = 0;
+
     private ImageView remoteView;
-    private ExecutorService cameraExecutor;
-    private final Set<String> activeActions = new HashSet<>();
-    private Runnable commandRunnable;
-    //private Orchestrator orchestrator;
+    private Button startServer;
+    private TextView textAltitude;
+    private TextView textHeading;
+    private TextView textSpeed;
+    private TextView textMotor1;
+    private TextView textMotor2;
+    private TextView textMotor3;
+    private TextView textMotor4;
 
-    // These help us loop the commands being sent
-    private static final long COMMAND_INTERVAL = 100;
-    private final Handler commandHandler = new Handler(Looper.getMainLooper());
-    public Date date = Calendar.getInstance().getTime();
-    public Calendar calendar = Calendar.getInstance();
+    private int roll = 0;
+    private int pitch = 0;
+    private int yaw = 0;
+    private int throttle = 0;
+    private volatile boolean p2pConnected = false;
+    private volatile boolean serverRequested = false;
+
+    private final Handler handler = new Handler(Looper.getMainLooper());
 
 
-    String currentTime;
 
+    @SuppressLint("SetTextI18n")
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+    public View onCreateView(@NonNull LayoutInflater inflater,
+                             @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
+
         View rootView = inflater.inflate(R.layout.fragment_manual, container, false);
 
-        Button start = rootView.findViewById(R.id.start);
-        Button forward = rootView.findViewById(R.id.forward);
-        Button backward = rootView.findViewById(R.id.backward);
-        Button left = rootView.findViewById(R.id.left);
-        Button right = rootView.findViewById(R.id.right);
-        Button takeoff = rootView.findViewById(R.id.takeoff);
-        Button land = rootView.findViewById(R.id.land);
-        Button up = rootView.findViewById(R.id.go_up);
-        Button down = rootView.findViewById(R.id.go_down);
-        Button rleft = rootView.findViewById(R.id.Rleft);
-        Button rright = rootView.findViewById(R.id.Rright);
-        Button autoPilotButton = rootView.findViewById(R.id.autoPilotButton);
+        startServer = rootView.findViewById(R.id.startServer);
+        Button armButton = rootView.findViewById(R.id.TakeoffLanding);
+        Button backButton = rootView.findViewById(R.id.backButton2);
+        ImageButton autoPilotButton = rootView.findViewById(R.id.menuButton);
+
+        textAltitude = rootView.findViewById(R.id.textAltitude);
+        textHeading = rootView.findViewById(R.id.textHeading);
+        textSpeed = rootView.findViewById(R.id.textSpeed);
+        textMotor1 = rootView.findViewById(R.id.textMotor1);
+        textMotor2 = rootView.findViewById(R.id.textMotor2);
+        textMotor3 = rootView.findViewById(R.id.textMotor3);
+        textMotor4 = rootView.findViewById(R.id.textMotor4);
         remoteView = rootView.findViewById(R.id.remoteCameraView);
-        WebSocketClientTesting socket = UserActivity.getOrchestrator().webSocket;
-        TextView speedTextView = rootView.findViewById(R.id.speedTextView);
-        TextView headingTextView = rootView.findViewById(R.id.HeadingViewText);
-        TextView gpsTextView = rootView.findViewById(R.id.gpsTextView);
-        socket.setWebSocketStateListener(new WebSocketClientTesting.WebSocketStateListener() {
-            @Override
-            public void onOpen() {
-                // runs on main thread for you (because WebSocketClientTesting posts there)
-                start.setBackgroundTintList(
-                        ContextCompat.getColorStateList(requireContext(), R.color.status_okt)
-                );
-                start.setText("WebSocket CONNECTED");
+
+
+        p2p = new WifiP2pController(requireContext(), this);
+
+        startServer.setText("Start Server");
+        startServer.setEnabled(true);
+        startServer.setOnClickListener(v -> startServerFlow());
+
+        armButton.setBackgroundColor(Color.parseColor("#32CD32"));
+        armButton.setText("ARM");
+
+        armButton.setOnClickListener(v -> {
+                //should be changed to read actual ARM status from drone phone
+            armed = (armed == 0) ? 1 : 0;
+
+            if (armed == 1) {
+                armButton.setBackgroundColor(Color.parseColor("#B22222"));
+                armButton.setText("DISARM");
+            } else {
+                armButton.setBackgroundColor(Color.parseColor("#32CD32"));
+                armButton.setText("ARM");
             }
 
-            @Override
-            public void onFailure(Throwable t, Response response) {
-                start.setBackgroundTintList(
-                        ContextCompat.getColorStateList(requireContext(), R.color.button_primary)
-                );
-                start.setText("Start");
-                Toast.makeText(requireContext(),
-                        "Failed to connect: " + t.getMessage(),
-                        Toast.LENGTH_SHORT
-                ).show();
-            }
+            sendControlPacket();        //sends control packet to arm/disarm drone
         });
-
-        // flightControllerSpinner may need to be in dronePhoneFragment
-
-        // Set up listeners, this is what the buttons do when clicked/held.
+                //back button
+        backButton.setOnClickListener(v ->
+                startActivity(new Intent(requireContext(), StartupActivity.class))
+        );
+            //autopilot overlay
         autoPilotButton.setOnClickListener(v -> {
-            // Ensure the activity is of type UserActivity
             if (getActivity() instanceof UserActivity) {
-                // Call switchFragment on the activity
                 ((UserActivity) getActivity()).switchFragment(UserActivity.getAutopilotFragment());
             }
         });
-        start.setOnClickListener(v -> UserActivity.getOrchestrator().connectToPhone());
-        takeoff.setOnClickListener(v -> UserActivity.getOrchestrator().processCommand("manual,takeoff", this::sendCommand));
-        land.setOnClickListener(v -> UserActivity.getOrchestrator().processCommand("manual,land", this::sendCommand));
-        setMovementListener(forward, "manual,forward");
-        setMovementListener(backward, "manual,backward");
-        setMovementListener(left, "manual,left");
-        setMovementListener(right, "manual,right");
-        setMovementListener(up, "manual,up");
-        setMovementListener(down, "manual,down");
-        setMovementListener(rleft, "manual,left_turn");
-        setMovementListener(rright, "manual,right_turn");
 
-//        if (allPermissionsGranted()) {
-//            startCamera();
-//        } else {
-//            requestPermissions(REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS);
-//        }
-        return rootView;
+        JoystickView joystickLeft = rootView.findViewById(R.id.joystick2);
+        JoystickView joystickRight = rootView.findViewById(R.id.joystick);
+                //left joystick
+        joystickLeft.setJoystickListener((angle, strength) -> {
 
+            int[] xy = polarToXY(angle, strength, 5);
 
-    }
-    private void setMovementListener(Button button, String action) {
-        button.setOnTouchListener((view, motionEvent) -> {
-            switch (motionEvent.getAction()) {
-                case MotionEvent.ACTION_DOWN:
-                    if (!activeActions.contains(action)) {
-                        activeActions.add(action);
-                        startCommandLoop(); // Start sending commands continuously
+            yaw = xy[0];
+            throttle = stickYToThrottle(xy[1]);
 
-                    }
-                    break;
-
-                case MotionEvent.ACTION_UP:
-                case MotionEvent.ACTION_CANCEL:
-                    activeActions.remove(action);
-                    if (activeActions.isEmpty()) {
-                        stopCommandLoop(); // Stop sending commands if no buttons are held
-                    }
-                    break;
-            }
-            return true;
+            sendControlPacket(); //sends packet whenever joystick is moved
         });
-    }
-    private void updateAndSendCommand() {
-        if (activeActions.isEmpty()) {
-            UserActivity.getOrchestrator().processCommand("manual,stop", ManualFragment.this::sendCommand);
-        } else {
-            // Define correct order of actions
-            //String[] correctOrder = {"manual,forward", "manual,backward", "manual,left", "manual,right", "manual,up", "manual,down", "manual,left_turn", "manual,right_turn"};
+                //right joystick
+        joystickRight.setJoystickListener((angle, strength) -> {
 
-            // Sort activeActions according to the predefined order
-            List<String> sortedActions = new ArrayList<>(activeActions);
-            //sortedActions.sort(Comparator.comparingInt(action -> Arrays.asList(correctOrder).indexOf(action)));
-            // Combine active actions using underscores (e.g., "forward_right")
-            String combinedAction = String.join("_", sortedActions);
-            UserActivity.getOrchestrator().processCommand(combinedAction, ManualFragment.this::sendCommand);
-        }
-    }
-    private void startCommandLoop() {
-        if (commandRunnable == null) {
-            commandRunnable = new Runnable() {
-                @Override
-                public void run() {
-                    updateAndSendCommand(); // Send the movement command
-                    commandHandler.postDelayed(this, COMMAND_INTERVAL); // Repeat after delay
-                }
-            };
-            commandHandler.post(commandRunnable); // Start the loop
-        }
-    }
+            int[] xy = polarToXY(angle, strength, 5);
 
-    private void stopCommandLoop() {
-        if (commandRunnable != null) {
-            commandHandler.removeCallbacks(commandRunnable); // Stop sending commands
-            commandRunnable = null;
-            UserActivity.getOrchestrator().processCommand("manual,stop", ManualFragment.this::sendCommand); // Send stop command
-        }
+            roll = xy[0];
+            pitch = -xy[1];
+
+            sendControlPacket();        //sends packet whenever joystick is moved
+        });
+
+
+        return rootView;
     }
-    //    private void startCamera() {
-//        ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext());
-//        cameraProviderFuture.addListener(() -> {
-//            try {
-//                ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
-//                CameraSelector cameraSelector = new CameraSelector.Builder()
-//                        .requireLensFacing(CameraSelector.LENS_FACING_BACK)
-//                        .build();
-//
-//                androidx.camera.core.Preview preview = new androidx.camera.core.Preview.Builder().build();
-//                preview.setSurfaceProvider(previewView.getSurfaceProvider());
-//
-//                Camera camera = cameraProvider.bindToLifecycle(getViewLifecycleOwner(), cameraSelector, preview);
-//            } catch (Exception e) {
-//                Log.e(TAG, "Use case binding failed", e);
-//            }
-//        }, ContextCompat.getMainExecutor(requireContext()));
-//    }
-    private void sendCommand(String command) {
-        calendar.setTime(date);
-        int hour = calendar.get(Calendar.HOUR_OF_DAY);
-        int minute = calendar.get(Calendar.MINUTE);
-        currentTime = (Calendar.getInstance().getTime().toString());
-        Log.d(TAG, "Sending command: " + command);
-        Log.e(TAG, "Current Time: " + hour+  " , " + minute);
+    private void sendControlPacket() {
+
+        if (p2p != null && p2p.isConnected()) {
+                //sends manual control packet
+            String msg = "CTRL," +
+                    roll + "," +
+                    pitch + "," +
+                    yaw + "," +
+                    throttle + "," +
+                    armed +
+                    "\n";
+
+            p2p.sendMessage(msg);
+
+        }
     }
     @Override
-    public void onDestroy() {
-        super.onDestroy();
-        stopCommandLoop();
-        //cameraExecutor.shutdown();
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        UserActivity.getOrchestrator().webSocket.addImageListener(imageListener);
-//
-//        // Re-register the Manual‐fragment listener
-//        UserActivity.getOrchestrator().webSocket.setWebSocketMessageListener(
-//                new WebSocketClientTesting.WebSocketMessageListener() {
-//                    @Override
-//                    public void onMessageReceived(String msg) { /* … */ }
-//
-//                    @Override
-//                    public void onByteReceived(Bitmap bitmap) {
-//                        requireActivity().runOnUiThread(() -> {
-//                            if (bitmap != null) {
-//                                // Rotate the bitmap 90 degrees
-//                                Matrix matrix = new Matrix();
-//                                matrix.postRotate(180); // or -90 depending on your camera orientation
-//                                Bitmap rotatedBitmap = Bitmap.createBitmap(
-//                                        bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true
-//                                );
-//
-//                                remoteView.setImageBitmap(rotatedBitmap);
-//                            }
-//                        });
-//                    }
-//                }
-//        );
+        if (p2p != null) {
+            p2p.register();
+        }
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        // Optionally clear it so you don’t leak or double-fire:
-        UserActivity.getOrchestrator().webSocket.removeImageListener(imageListener);
+        if (p2p != null) {
+            p2p.unregister();
+        }
     }
 
-    private final WebSocketClientTesting.WebSocketImageListener imageListener = bitmap -> {
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        handler.removeCallbacksAndMessages(null);
+
+        if (p2p != null) {
+            p2p.shutdown();
+        }
+    }
+            //start p2p server
+    private void startServerFlow() {
+        if (!hasP2pPermissions()) {
+            requestP2pPermissions();
+            return;
+        }
+
+        serverRequested = true;
+        p2pConnected = false;
+        startServer.setEnabled(false);
+        startServer.setText("Starting...");
+        p2p.createGroup();
+
+    }
+                        //permission checks
+    private boolean hasP2pPermissions() {
+        boolean fineLocation = ContextCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            boolean nearbyWifi = ContextCompat.checkSelfPermission(
+                    requireContext(),
+                    Manifest.permission.NEARBY_WIFI_DEVICES
+            ) == PackageManager.PERMISSION_GRANTED;
+            return fineLocation && nearbyWifi;
+        }
+
+        return fineLocation;
+    }
+                //permission requests
+    private void requestP2pPermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            requestPermissions(
+                    new String[]{
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.NEARBY_WIFI_DEVICES
+                    },
+                    REQUEST_CODE_P2P
+            );
+        } else {
+            requestPermissions(
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    REQUEST_CODE_P2P
+            );
+        }
+    }
+                    //if user declines permissions, server will not start
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == REQUEST_CODE_P2P) {
+            boolean granted = true;
+            for (int result : grantResults) {
+                if (result != PackageManager.PERMISSION_GRANTED) {
+                    granted = false;
+                    break;
+                }
+            }
+
+            if (granted) {
+                startServerFlow();
+            } else {
+                Toast.makeText(requireContext(), "Wi-Fi Direct permissions denied", Toast.LENGTH_SHORT).show();
+                startServer.setEnabled(true);
+                startServer.setText("Start Server");
+            }
+        }
+    }
+
+
+    //left joystick up/down is throttle only
+    static int stickYToThrottle(int y) {
+        int t = (y + 1000) / 2;
+        return clamp(t, 0, 1000);
+    }
+    //helper method for polarToXY
+    static int clamp(int v, int lo, int hi) {
+        return Math.max(lo, Math.min(hi, v));
+    }
+
+
+            //changes on screen joystick outputs (-180-180) to Mavlink inputs (-1000-1000)
+    static int[] polarToXY(double angleDeg, double strength, int deadzone) {
+        if (strength < deadzone) strength = 0;
+
+        double mag = clamp((int) Math.round(strength), 0, 100) / 100.0;
+        double rad = Math.toRadians(-angleDeg);
+
+        int x = (int) Math.round(Math.cos(rad) * mag * 1000.0);
+        int y = (int) Math.round(Math.sin(rad) * mag * 1000.0);
+
+        return new int[]{clamp(x, -1000, 1000), clamp(y, -1000, 1000)};
+    }
+
+        //needs new implementation
+
+
+    @Override
+    public void onPeersUpdated(List<WifiP2pDevice> peers) {
+        // Host fragment does not need peer list UI
+    }
+
+    @Override
+    public void onConnectionStatusChanged(String status) {
+        if (!isAdded()) return;
+
         requireActivity().runOnUiThread(() -> {
-            if (bitmap != null) {
-                Matrix matrix = new Matrix();
-                matrix.postRotate(180);
-                Bitmap rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
-                remoteView.setImageBitmap(rotatedBitmap);
+            if ("Group created".equals(status) || "Starting server".equals(status)) {
+                startServer.setText("Server Ready");
+                startServer.setEnabled(false);
+            } else if ("Group removed".equals(status)) {
+                p2pConnected = false;
+                serverRequested = false;
+                startServer.setText("Start Server");
+                startServer.setEnabled(true);
+            } else if ("Group not formed".equals(status) && serverRequested) {
+                startServer.setText("Start Server");
+                startServer.setEnabled(true);
+            }
+
+            if (!"Peer discovery stopped".equals(status)) {
+                Toast.makeText(requireContext(), status, Toast.LENGTH_SHORT).show();
             }
         });
-    };
+    }
 
+
+        //receives telemetry from drone phone, updates on screen
+    @Override
+    public void onMessageReceived(String message) {
+        if (!isAdded()) return;
+
+        String[] packets = message.split("\n");
+
+        for (String packet : packets) {
+            if (packet.trim().isEmpty()) continue;
+
+            String[] parts = packet.split(",");
+            if (parts.length < 9) continue;
+
+            if (parts[0].equals("TEL")) {
+                double altitude = Double.parseDouble(parts[1]);
+                double heading = Double.parseDouble(parts[2]);
+                double speed = Double.parseDouble(parts[3]);
+
+                int m1 = Integer.parseInt(parts[4]);
+                int m2 = Integer.parseInt(parts[5]);
+                int m3 = Integer.parseInt(parts[6]);
+                int m4 = Integer.parseInt(parts[7]);
+
+                int armed = Integer.parseInt(parts[8]);
+
+                requireActivity().runOnUiThread(() -> {
+                    textAltitude.setText(String.format(Locale.US, "Alt: %.1f m", altitude));
+                    textHeading.setText(String.format(Locale.US, "Head: %.0f°", heading));
+                    textSpeed.setText(String.format(Locale.US, "Speed: %.1f m/s", speed));
+
+                    textMotor1.setText("M1: " + m1 + "%");
+                    textMotor2.setText("M2: " + m2 + "%");
+                    textMotor3.setText("M3: " + m3 + "%");
+                    textMotor4.setText("M4: " + m4 + "%");
+
+                    startServer.setText(armed == 1 ? "ARMED" : "DISARMED");
+                });
+            }
+        }
+    }
+
+    @Override
+    public void onCameraBytesReceieved(byte[] data) {
+        if (!isAdded()) return;
+
+        requireActivity().runOnUiThread(() -> {
+            Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
+            if (bitmap != null) {
+                remoteView.setImageBitmap(bitmap);
+            }
+        });
+    }
+
+
+    @Override
+    public void onSocketConnected(boolean isHost) {
+        if (!isAdded()) return;
+
+        p2pConnected = true;
+
+        requireActivity().runOnUiThread(() -> {
+            if (isHost) {
+                startServer.setText("Client Connected");
+                startServer.setEnabled(false);
+                Toast.makeText(requireContext(), "Server socket connected", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    @Override
+    public void onError(String error) {
+        p2pConnected = false;
+
+        if (!isAdded()) return;
+
+        requireActivity().runOnUiThread(() -> {
+            Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show();
+            startServer.setEnabled(true);
+            startServer.setText("Start Server");
+        });
+    }
 }

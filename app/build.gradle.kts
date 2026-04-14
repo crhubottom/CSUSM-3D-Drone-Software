@@ -41,6 +41,9 @@ android {
 }
 
 dependencies {
+
+    implementation("io.dronefleet.mavlink:mavlink:1.1.11")
+    implementation("com.github.mik3y:usb-serial-for-android:3.6.0")
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -55,6 +58,7 @@ dependencies {
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
     implementation(libs.okhttp)
+
     implementation(libs.appcompat.v161)
     implementation(libs.androidx.constraintlayout)
     implementation (libs.socket.socket.io.client)

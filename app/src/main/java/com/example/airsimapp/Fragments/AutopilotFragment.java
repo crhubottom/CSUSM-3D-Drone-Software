@@ -1,5 +1,6 @@
 package com.example.airsimapp.Fragments;
 
+import android.app.AlertDialog;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.os.Bundle;
@@ -8,7 +9,6 @@ import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -17,8 +17,6 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -29,10 +27,12 @@ import com.example.airsimapp.CommandAdapter;
 import com.example.airsimapp.GPS;
 import com.example.airsimapp.GPSCommand;
 import com.example.airsimapp.HeadingAndSpeed;
+import com.example.airsimapp.InstructionAdapter;
+import com.example.airsimapp.InstructionItem;
 import com.example.airsimapp.LoiterPattern;
 import com.example.airsimapp.R;
-import com.example.airsimapp.WebSocketClientTesting;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -64,7 +64,7 @@ public class AutopilotFragment extends Fragment {
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_autopilot, container, false);
 
-
+/*
         commandRecyclerView = view.findViewById(R.id.commandRecyclerView);
         commandRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         commandAdapter = new CommandAdapter(UserActivity.getOrchestrator().getAutopilot().getCommandQueue(),
@@ -75,7 +75,10 @@ public class AutopilotFragment extends Fragment {
         );
         commandRecyclerView.setAdapter(commandAdapter);
         // Get the button from the layout
-        Button manualButton = view.findViewById(R.id.manualButton);
+
+ */
+        Button manualButton = view.findViewById(R.id.backButtonAutopilot);
+        /*
         EditText latitude = view.findViewById(R.id.gpsCord);
         EditText longitude = view.findViewById(R.id.gpsCord2);
         EditText altitude = view.findViewById(R.id.gpsCord3);
@@ -91,6 +94,7 @@ public class AutopilotFragment extends Fragment {
         remoteView = view.findViewById(R.id.autopilotPreviewView);
         Spinner patternSpinner = view.findViewById(R.id.pattern);
         String[] patternOptions = {"RaceTrack", "Circle", "Figure8"};
+
         ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item, patternOptions);
         spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         patternSpinner.setAdapter(spinnerAdapter);
@@ -110,6 +114,8 @@ public class AutopilotFragment extends Fragment {
         startButton.setOnClickListener(v -> {
             handler.post(commandSenderRunnable); // start sending
         });
+
+
 
 
 
@@ -179,7 +185,7 @@ public class AutopilotFragment extends Fragment {
             }
         });
 
-
+*/
         // Set the button's click listener to return to the UserPhoneFragment
         manualButton.setOnClickListener(v -> {
             // Ensure the activity is of type UserActivity
@@ -188,7 +194,96 @@ public class AutopilotFragment extends Fragment {
                 ((UserActivity) getActivity()).switchFragment(UserActivity.getUserPhoneFragment());
             }
         });
+        String[] items = {"Pattern 1", "Pattern 2", "Pattern 3"};
+        Spinner spinner = view.findViewById(R.id.patternSpinner);
 
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                getContext(), android.R.layout.simple_spinner_item, items
+        );
+
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+        spinner.setAdapter(adapter);
+        RecyclerView recyclerView = view.findViewById(R.id.recyclerView);
+        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+
+
+        ArrayList<InstructionItem> list = new ArrayList<>();
+        InstructionAdapter instructionAdapter = new InstructionAdapter(list);
+        recyclerView.setAdapter(instructionAdapter);
+        EditText latText = view.findViewById(R.id.LatText);
+        EditText longText = view.findViewById(R.id.LongText);
+        EditText altText = view.findViewById(R.id.AltText);
+        Button gpsButton = view.findViewById(R.id.GPSButton);
+
+        gpsButton.setOnClickListener(v -> {
+            String lat = latText.getText().toString().trim();
+            String lon = longText.getText().toString().trim();
+            String alt = altText.getText().toString().trim();
+
+            if (lat.isEmpty() || lon.isEmpty() || alt.isEmpty()) {
+                Toast.makeText(getContext(), "Please fill in all GPS coordinates", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            new AlertDialog.Builder(getContext())
+                    .setTitle("Confirm GPS Entry")
+                    .setMessage("Latitude: " + lat + "\nLongitude: " + lon + "\nAltitude: " + alt)
+                    .setPositiveButton("Confirm", (dialog, which) -> {
+                        Toast.makeText(getContext(), "GPS Coordinates Confirmed!", Toast.LENGTH_SHORT).show();
+                        list.add(new InstructionItem(R.drawable.gpsicon, "Waypoint", "Lat: " + lat + " Lon: " + lon + " Alt: " + alt));
+                        instructionAdapter.notifyItemInserted(list.size() - 1);
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        });
+
+        EditText direction = view.findViewById(R.id.directionInput);
+        EditText speed = view.findViewById(R.id.speedInput);
+        EditText time = view.findViewById(R.id.timeInput);
+        Button headingButton = view.findViewById(R.id.headingButton);
+        headingButton.setOnClickListener(v -> {
+            String dir = direction.getText().toString().trim();
+            String speedText = speed.getText().toString().trim();
+            String t = time.getText().toString().trim();
+
+            if(dir.isEmpty() ||speedText.isEmpty() || t.isEmpty()){
+                Toast.makeText(getContext(), "Please fill in all Heading/Speed instructions", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            new AlertDialog.Builder(getContext())
+                    .setTitle("Confirm Heading/Speed Entry")
+                    .setMessage("Direction: " + dir + "\nSpeed: " + speedText + "\nTime: " + t)
+                    .setPositiveButton("Confirm", (dialog, which)->{
+                        Toast.makeText(getContext(), "Heading/Speed Confirmed!", Toast.LENGTH_SHORT).show();
+                        list.add(new InstructionItem(R.drawable.directionicon, "Heading/Speed", "Direction: " + dir + " Speed: " + speedText + " Time: " + t));
+                        instructionAdapter.notifyItemInserted(list.size() - 1);
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        });
+
+        EditText timePattern = view.findViewById(R.id.patternTime);
+        Button patternButton = view.findViewById(R.id.patternButton);
+
+        patternButton.setOnClickListener(v -> {
+            String pattern = spinner.getSelectedItem().toString();
+            String timePatternText = timePattern.getText().toString().trim();
+
+            if(pattern.isEmpty() || timePatternText.isEmpty()){
+                Toast.makeText(getContext(), "Please fill in all Pattern instructions", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            new AlertDialog.Builder(getContext())
+                    .setTitle("Confirm Pattern Entry")
+                    .setMessage("Pattern: " + pattern + "\nTime: " + timePatternText)
+                    .setPositiveButton("Confirm", (dialog, which)->{
+                        Toast.makeText(getContext(), "Pattern Confirmed!", Toast.LENGTH_SHORT).show();
+                        list.add(new InstructionItem(R.drawable.patternicon, pattern, "Time" + timePatternText));
+                        instructionAdapter.notifyItemInserted(list.size() - 1);
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        });
 
 
         // This will listen for messages from the drone websocket
@@ -210,29 +305,31 @@ public class AutopilotFragment extends Fragment {
 
         return view;
     }
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
 
-        // Get a reference to the TextView
-        speedTextView = view.findViewById(R.id.speedTextView);
-        headingTextView = view.findViewById(R.id.HeadingViewText);
-        gpsTextView = view.findViewById(R.id.gpsTextView);
-        startSpeedUpdates();
-    }
+    // ********** NO SUPPORT IN NEW UI ********************
+//    @Override
+//    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+//        super.onViewCreated(view, savedInstanceState);
+//
+//        // Get a reference to the TextView
+//        speedTextView = view.findViewById(R.id.speedTextView);
+//        headingTextView = view.findViewById(R.id.HeadingViewText);
+//        gpsTextView = view.findViewById(R.id.gpsTextView);
+//        startSpeedUpdates();
+//    }
 
     private void updateUI() {
         String speedText = getString(R.string.speed_display, getCurrentSpeed());
-        speedTextView.setText(speedText);
+//        speedTextView.setText(speedText);
         //update heading
         String headingText = getString(R.string.heading_display, getCurrentHeading());
-        headingTextView.setText(headingText);
+        //headingTextView.setText(headingText);
 
         //update GPS
         if(currentGPS != null)
         {
             String gpsText = getString(R.string.gps_display, getCurrentGPS().getLatitude(), getCurrentGPS().getLongitude(), getCurrentGPS().getAltitude());
-            gpsTextView.setText(gpsText);
+            //gpsTextView.setText(gpsText);
         }
     }
     private double getCurrentSpeed() {
@@ -338,91 +435,5 @@ public class AutopilotFragment extends Fragment {
 
     private void sendCommand(String s) {
         //Log.d(TAG, "Sending autopilot command");
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        UserActivity.getOrchestrator().webSocket.setWebSocketMessageListener(new WebSocketClientTesting.WebSocketMessageListener() {
-            @Override
-            public void onMessageReceived(String msg) {
-                String[] strBreakup = msg.split(",");
-                if (Objects.equals(strBreakup[0], "getSpeed")) {
-                    UserActivity.getOrchestrator().getAutopilot().setCurrentSpeed(Float.parseFloat(strBreakup[1]));
-                    // Log.d(TAG, "TESTING speed: " + UserActivity.getOrchestrator().getAutopilot().getCurrentSpeed());
-                } else if (Objects.equals(strBreakup[0], "getHeading")) {
-                    UserActivity.getOrchestrator().getAutopilot().setCurrentHeading(Float.parseFloat(strBreakup[1]));
-                    // Log.d(TAG, "TESTING heading: " + UserActivity.getOrchestrator().getAutopilot().getCurrentHeading());
-                } else if (Objects.equals(strBreakup[0], "getGPS")){
-                    currentGPS = new GPS(strBreakup[1], strBreakup[2], strBreakup[3]);
-                    UserActivity.getOrchestrator().getAutopilot().setCurrentGPS(currentGPS);
-                    // Log.d(TAG, "TESTING gps: " + UserActivity.getOrchestrator().getAutopilot().getCurrentGPS());
-                }
-            }
-
-            @Override
-            public void onByteReceived(Bitmap bitmap) {
-                // run on UI thread and paint into the ImageView
-//                requireActivity().runOnUiThread(() -> {
-//
-//                    remoteView.setImageBitmap(bitmap);
-//                });
-            }
-        });
-        startSpeedUpdates();  // start updates when fragment is visible again
-    }
-
-    @Override
-    public void onPause() {
-        super.onPause();
-        stopSpeedUpdates();   // stop updates when fragment is no longer visible
-        UserActivity.getOrchestrator().webSocket.setWebSocketMessageListener(null);
-    }
-
-    @Override
-    public void onHiddenChanged(boolean hidden) {
-        super.onHiddenChanged(hidden);
-        if (!hidden) {
-            // this fragment is now visible
-            UserActivity.getOrchestrator().webSocket.setWebSocketMessageListener(new WebSocketClientTesting.WebSocketMessageListener() {
-                @Override
-                public void onMessageReceived(String msg) {
-                    String[] strBreakup = msg.split(",");
-                    if (Objects.equals(strBreakup[0], "getSpeed")) {
-                        UserActivity.getOrchestrator().getAutopilot().setCurrentSpeed(Float.parseFloat(strBreakup[1]));
-                        // Log.d(TAG, "TESTING speed: " + UserActivity.getOrchestrator().getAutopilot().getCurrentSpeed());
-                    } else if (Objects.equals(strBreakup[0], "getHeading")) {
-                        UserActivity.getOrchestrator().getAutopilot().setCurrentHeading(Float.parseFloat(strBreakup[1]));
-                        // Log.d(TAG, "TESTING heading: " + UserActivity.getOrchestrator().getAutopilot().getCurrentHeading());
-                    } else if (Objects.equals(strBreakup[0], "getGPS")){
-                        currentGPS = new GPS(strBreakup[1], strBreakup[2], strBreakup[3]);
-                        UserActivity.getOrchestrator().getAutopilot().setCurrentGPS(currentGPS);
-                        // Log.d(TAG, "TESTING gps: " + UserActivity.getOrchestrator().getAutopilot().getCurrentGPS());
-                    }
-                }
-
-                @Override
-                public void onByteReceived(Bitmap bitmap) {
-                    // run on UI thread and paint into the ImageView
-                    requireActivity().runOnUiThread(() -> {
-                        if (bitmap != null) {
-                            // Rotate the bitmap 90 degrees
-                            Matrix matrix = new Matrix();
-                            matrix.postRotate(180); // or -90 depending on your camera orientation
-                            Bitmap rotatedBitmap = Bitmap.createBitmap(
-                                    bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true
-                            );
-
-                            remoteView.setImageBitmap(rotatedBitmap);
-                        }
-                    });
-                }
-            });
-            startSpeedUpdates();
-        } else {
-            // fragment is now hidden
-            UserActivity.getOrchestrator().webSocket.setWebSocketMessageListener(null);
-            stopSpeedUpdates();
-        }
     }
 }

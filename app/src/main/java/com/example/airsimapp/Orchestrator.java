@@ -1,24 +1,23 @@
 package com.example.airsimapp;
 
+import static com.example.airsimapp.Fragments.DronePhoneFragment.ip;
+
 import android.util.Log;
 
 public class Orchestrator {
 
     private Autopilot autopilot;
-    public WebSocketClientTesting webSocket;
     //private final flightControllerInterface flightController;
     private String command;
     private boolean isConnected = false;
 
     public Orchestrator(flightControllerInterface flightController) {
         //this.flightController = flightController;
-        this.webSocket = new WebSocketClientTesting();
         this.autopilot = new Autopilot();
     }
 
     public Orchestrator() {
         //this.flightController = flightController;
-        this.webSocket = new WebSocketClientTesting();
         this.autopilot = new Autopilot();
     }
 
@@ -28,7 +27,6 @@ public class Orchestrator {
 
     public void connectToPhone() {
         if (!isConnected) {
-            webSocket.connect("ws://192.168.1.242:8766");
             isConnected = true;
         }
 //        webSocket.setWebSocketMessageListener(new WebSocketClientTesting.WebSocketMessageListener() {
@@ -46,7 +44,7 @@ public class Orchestrator {
             case "manual":
                 command = autopilot.getManual().translateCommand(userAction, autopilot.getYawRate(), autopilot.getVelocity(), autopilot.getCommandTime());
                 callback.onCommandReady(command);
-                webSocket.sendMessage(command); // Send to websocket -> Drone Phone
+                //webSocket.sendMessage(command); // Send to websocket -> Drone Phone
                 break;
             case "autopilot":
                 StringBuilder autopilotCommand = new StringBuilder();
@@ -59,12 +57,12 @@ public class Orchestrator {
 
                 String commandStr = autopilotCommand.toString();
                 callback.onCommandReady(commandStr);
-                webSocket.sendMessage(commandStr);
+                //webSocket.sendMessage(commandStr);
                 break;
             case "getGPS":
             case "getSpeed":
             case "getHeading":
-                webSocket.sendMessage(userAction);
+                //webSocket.sendMessage(userAction);
                 break;
             default:
                 Log.e("Orchestrator", "Unknown Message Received, Cannot Process Command");
