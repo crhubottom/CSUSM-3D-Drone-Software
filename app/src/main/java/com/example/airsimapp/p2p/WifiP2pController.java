@@ -18,6 +18,7 @@ import android.os.Looper;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -25,6 +26,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,6 +36,7 @@ public class WifiP2pController {
         void onPeersUpdated(List<WifiP2pDevice> peers);
         void onConnectionStatusChanged(String status);
         void onMessageReceived(String message);
+        void onCameraBytesReceieved(byte[] data);
         void onSocketConnected(boolean isHost);
         void onError(String error);
     }
@@ -52,7 +55,18 @@ public class WifiP2pController {
 
     private ServerClass serverClass;
     private ClientClass clientClass;
-    private SendReceive sendReceive;
+    private static final int PORT_CONTROL = 6000;
+    private static final int PORT_SECOND = 6001;
+    private static final int CHANNEL_CONTROL = 1;
+    private static final int CHANNEL_SECOND = 2;
+    private ServerClass serverControl;
+    private ServerClass serverSecond;
+
+    private ClientClass clientControl;
+    private ClientClass clientSecond;
+
+    private SendReceive sendReceiveControl;
+    private SendReceive sendReceiveSecond;
 
     private boolean receiverRegistered = false;
 
@@ -111,9 +125,11 @@ public class WifiP2pController {
     }
 
     public boolean isConnected() {
-        return sendReceive != null && sendReceive.isAliveAndConnected();
+        return sendReceiveControl != null && sendReceiveControl.isAliveAndConnected();
     }
-
+    public boolean isCameraConnected() {
+        return sendReceiveSecond != null && sendReceiveSecond.isAliveAndConnected();
+    }
     @SuppressLint("MissingPermission")
     public void discoverPeers() {
         if (manager == null || channel == null) {
@@ -253,16 +269,30 @@ public class WifiP2pController {
     }
 
     public void sendMessage(String message) {
-        if (!isConnected()) {
-            listener.onError("No socket connection available");
+        if (sendReceiveControl == null || !sendReceiveControl.isAliveAndConnected()) {
+            listener.onError("No control socket connection available");
             return;
         }
-        sendReceive.write(message.getBytes());
+        sendReceiveControl.write(message.getBytes());
     }
 
-    public void shutdown() {
-        closeSocketConnection();
+    public void sendCameraBytes(byte[] jpegBytes) {
+        if (sendReceiveSecond == null || !sendReceiveSecond.isAliveAndConnected()) {
+            listener.onError("No second socket connection available");
+            return;
+        }
 
+        ByteBuffer buffer = ByteBuffer.allocate(4 + jpegBytes.length);
+        buffer.putInt(jpegBytes.length);
+        buffer.put(jpegBytes);
+
+        sendReceiveSecond.write(buffer.array());
+    }
+
+
+    public void shutdown() {
+        closeControlSocketConnection();
+        closeSecondSocketConnection();
         if (clientClass != null) {
             clientClass.close();
             clientClass = null;
@@ -277,10 +307,17 @@ public class WifiP2pController {
         removeGroup();
     }
 
-    private void closeSocketConnection() {
-        if (sendReceive != null) {
-            sendReceive.close();
-            sendReceive = null;
+    private void closeControlSocketConnection() {
+        if (sendReceiveControl != null) {
+            sendReceiveControl.close();
+            sendReceiveControl = null;
+        }
+    }
+
+    private void closeSecondSocketConnection() {
+        if (sendReceiveSecond != null) {
+            sendReceiveSecond.close();
+            sendReceiveSecond = null;
         }
     }
 
@@ -337,7 +374,6 @@ public class WifiP2pController {
             }
         }
     };
-
     private final WifiP2pManager.ConnectionInfoListener connectionInfoListener =
             new WifiP2pManager.ConnectionInfoListener() {
                 @Override
@@ -349,30 +385,53 @@ public class WifiP2pController {
 
                     if (info.isGroupOwner) {
                         listener.onConnectionStatusChanged("Starting server");
-                        if (serverClass == null || !serverClass.isAlive()) {
-                            serverClass = new ServerClass();
-                            serverClass.start();
+
+                        if (serverControl == null || !serverControl.isAlive()) {
+                            serverControl = new ServerClass(PORT_CONTROL, CHANNEL_CONTROL);
+                            serverControl.start();
                         }
+
+                        if (serverSecond == null || !serverSecond.isAlive()) {
+                            serverSecond = new ServerClass(PORT_SECOND, CHANNEL_SECOND);
+                            serverSecond.start();
+                        }
+
                     } else {
                         listener.onConnectionStatusChanged("Starting client");
-                        if (clientClass == null || !clientClass.isAlive()) {
-                            mainHandler.postDelayed(() -> {
-                                clientClass = new ClientClass(info.groupOwnerAddress);
-                                clientClass.start();
-                            }, 2000);
-                        }
+
+                        mainHandler.postDelayed(() -> {
+                            if (clientControl == null || !clientControl.isAlive()) {
+                                clientControl = new ClientClass(
+                                        info.groupOwnerAddress,
+                                        PORT_CONTROL,
+                                        CHANNEL_CONTROL
+                                );
+                                clientControl.start();
+                            }
+
+                            if (clientSecond == null || !clientSecond.isAlive()) {
+                                clientSecond = new ClientClass(
+                                        info.groupOwnerAddress,
+                                        PORT_SECOND,
+                                        CHANNEL_SECOND
+                                );
+                                clientSecond.start();
+                            }
+                        }, 2000);
                     }
                 }
             };
 
     private class SendReceive extends Thread {
         private final Socket socket;
+        private final int channelType;
         private InputStream inputStream;
         private OutputStream outputStream;
         private volatile boolean closed = false;
 
-        public SendReceive(Socket socket) {
+        public SendReceive(Socket socket, int channelType) {
             this.socket = socket;
+            this.channelType = channelType;
             try {
                 inputStream = socket.getInputStream();
                 outputStream = socket.getOutputStream();
@@ -406,18 +465,27 @@ public class WifiP2pController {
             } catch (Exception ignored) {
             }
 
-            if (sendReceive == this) {
-                sendReceive = null;
+            if (channelType == CHANNEL_CONTROL && sendReceiveControl == this) {
+                sendReceiveControl = null;
+            } else if (channelType == CHANNEL_SECOND && sendReceiveSecond == this) {
+                sendReceiveSecond = null;
             }
         }
 
         @Override
         public void run() {
+            if (channelType == CHANNEL_CONTROL) {
+                runTextLoop();
+            } else if (channelType == CHANNEL_SECOND) {
+                runFrameLoop();
+            }
+        }
+        private void runTextLoop() {
             byte[] buffer = new byte[1024];
             int bytes;
 
-            while (isAliveAndConnected()) {
-                try {
+            try {
+                while (isAliveAndConnected()) {
                     bytes = inputStream.read(buffer);
 
                     if (bytes == -1) {
@@ -426,19 +494,41 @@ public class WifiP2pController {
 
                     if (bytes > 0) {
                         String message = new String(buffer, 0, bytes);
+
                         mainHandler.post(() -> listener.onMessageReceived(message));
                     }
-                } catch (IOException e) {
-                    if (!closed) {
-                        mainHandler.post(() -> listener.onError("Connection closed"));
-                    }
-                    break;
                 }
+            } catch (IOException e) {
+                if (!closed) {
+                    mainHandler.post(() -> listener.onError("Control connection closed"));
+                }
+            } finally {
+                close();
             }
-
-            close();
         }
+        private void runFrameLoop() {
+            try {
+                DataInputStream dis = new DataInputStream(inputStream);
 
+                while (isAliveAndConnected()) {
+                    int frameLength = dis.readInt();
+                    if (frameLength <= 0 || frameLength > 5_000_000) {
+                        throw new IOException("Invalid frame size: " + frameLength);
+                    }
+
+                    byte[] frame = new byte[frameLength];
+                    dis.readFully(frame);
+
+                    mainHandler.post(() -> listener.onCameraBytesReceieved(frame));
+                }
+            } catch (IOException e) {
+                if (!closed) {
+                    mainHandler.post(() -> listener.onError("Second socket frame read failed: " + e.getMessage()));
+                }
+            } finally {
+                close();
+            }
+        }
         public void write(byte[] bytes) {
             new Thread(() -> {
                 try {
@@ -447,7 +537,11 @@ public class WifiP2pController {
                         outputStream.flush();
                     } else {
                         close();
-                        mainHandler.post(() -> listener.onError("Socket is not connected"));
+                        mainHandler.post(() -> listener.onError(
+                                channelType == CHANNEL_CONTROL
+                                        ? "Control socket is not connected"
+                                        : "Second socket is not connected"
+                        ));
                     }
                 } catch (IOException e) {
                     close();
@@ -458,26 +552,42 @@ public class WifiP2pController {
     }
 
     public class ServerClass extends Thread {
+        private final int port;
+        private final int channelType;
         private Socket socket;
         private ServerSocket serverSocket;
         private volatile boolean closed = false;
 
+        public ServerClass(int port, int channelType) {
+            this.port = port;
+            this.channelType = channelType;
+        }
+
         @Override
         public void run() {
             try {
-                serverSocket = new ServerSocket(6000);
+                serverSocket = new ServerSocket(port);
                 socket = serverSocket.accept();
 
                 if (closed) return;
 
-                closeSocketConnection();
-                sendReceive = new SendReceive(socket);
-                sendReceive.start();
+                if (channelType == CHANNEL_CONTROL) {
+                    closeControlSocketConnection();
+                    sendReceiveControl = new SendReceive(socket, CHANNEL_CONTROL);
+                    sendReceiveControl.start();
+                } else {
+                    closeSecondSocketConnection();
+                    sendReceiveSecond = new SendReceive(socket, CHANNEL_SECOND);
+                    sendReceiveSecond.start();
+                }
 
                 mainHandler.post(() -> listener.onSocketConnected(true));
+
             } catch (IOException e) {
                 if (!closed) {
-                    mainHandler.post(() -> listener.onError("Server error: " + e.getMessage()));
+                    mainHandler.post(() -> listener.onError(
+                            "Server error on port " + port + ": " + e.getMessage()
+                    ));
                 }
             }
         }
@@ -500,10 +610,14 @@ public class WifiP2pController {
     public class ClientClass extends Thread {
         private final Socket socket;
         private final String hostAddress;
+        private final int port;
+        private final int channelType;
         private volatile boolean closed = false;
 
-        public ClientClass(InetAddress hostAddress) {
+        public ClientClass(InetAddress hostAddress, int port, int channelType) {
             this.hostAddress = hostAddress.getHostAddress();
+            this.port = port;
+            this.channelType = channelType;
             this.socket = new Socket();
         }
 
@@ -512,26 +626,42 @@ public class WifiP2pController {
             int attempts = 0;
 
             while (attempts < 10 && !closed) {
+                Socket tempSocket = new Socket();
                 try {
                     Thread.sleep(1000);
-                    socket.connect(new InetSocketAddress(hostAddress, 6000), 3000);
+                    tempSocket.connect(new InetSocketAddress(hostAddress, port), 3000);
 
-                    if (closed) return;
+                    if (closed) {
+                        tempSocket.close();
+                        return;
+                    }
 
-                    closeSocketConnection();
-                    sendReceive = new SendReceive(socket);
-                    sendReceive.start();
+                    if (channelType == CHANNEL_CONTROL) {
+                        closeControlSocketConnection();
+                        sendReceiveControl = new SendReceive(tempSocket, CHANNEL_CONTROL);
+                        sendReceiveControl.start();
+                    } else {
+                        closeSecondSocketConnection();
+                        sendReceiveSecond = new SendReceive(tempSocket, CHANNEL_SECOND);
+                        sendReceiveSecond.start();
+                    }
 
                     mainHandler.post(() -> listener.onSocketConnected(false));
                     return;
 
                 } catch (Exception e) {
                     attempts++;
+                    try {
+                        tempSocket.close();
+                    } catch (Exception ignored) {
+                    }
                 }
             }
 
             if (!closed) {
-                mainHandler.post(() -> listener.onError("Client could not connect after retries"));
+                mainHandler.post(() -> listener.onError(
+                        "Client could not connect on port " + port + " after retries"
+                ));
             }
         }
 
