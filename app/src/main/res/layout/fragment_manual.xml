@@ -99,12 +99,12 @@
         android:layout_width="0dp"
         android:layout_height="120dp"
         android:layout_marginTop="70dp"
-        android:padding="8dp"
         android:background="@android:color/transparent"
         android:elevation="4dp"
-        app:layout_constraintTop_toTopOf="parent"
+        android:padding="8dp"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_constraintTop_toTopOf="parent">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -125,7 +125,7 @@
                     android:layout_weight="1"
                     android:text="Alt: 0.0 m"
                     android:textColor="@android:color/black"
-                    android:textSize="14sp"/>
+                    android:textSize="14sp" />
 
                 <TextView
                     android:id="@+id/textHeading"
@@ -134,7 +134,7 @@
                     android:layout_weight="1"
                     android:text="Head: 0°"
                     android:textColor="@android:color/black"
-                    android:textSize="14sp"/>
+                    android:textSize="14sp" />
 
                 <TextView
                     android:id="@+id/textSpeed"
@@ -143,16 +143,17 @@
                     android:layout_weight="1"
                     android:text="Speed: 0.0"
                     android:textColor="@android:color/black"
-                    android:textSize="14sp"/>
+                    android:textSize="14sp" />
             </LinearLayout>
 
             <!-- Motor Row -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
                 android:orientation="horizontal"
-                android:weightSum="4"
-                android:layout_marginTop="6dp">
+                android:weightSum="4">
+
 
                 <TextView
                     android:id="@+id/textMotor1"
@@ -161,7 +162,7 @@
                     android:layout_weight="1"
                     android:text="M1: 0%"
                     android:textColor="@android:color/black"
-                    android:textSize="13sp"/>
+                    android:textSize="13sp" />
 
                 <TextView
                     android:id="@+id/textMotor2"
@@ -170,7 +171,7 @@
                     android:layout_weight="1"
                     android:text="M2: 0%"
                     android:textColor="@android:color/black"
-                    android:textSize="13sp"/>
+                    android:textSize="13sp" />
 
                 <TextView
                     android:id="@+id/textMotor3"
@@ -179,7 +180,7 @@
                     android:layout_weight="1"
                     android:text="M3: 0%"
                     android:textColor="@android:color/black"
-                    android:textSize="13sp"/>
+                    android:textSize="13sp" />
 
                 <TextView
                     android:id="@+id/textMotor4"
@@ -188,11 +189,11 @@
                     android:layout_weight="1"
                     android:text="M4: 0%"
                     android:textColor="@android:color/black"
-                    android:textSize="13sp"/>
+                    android:textSize="13sp" />
             </LinearLayout>
 
         </LinearLayout>
     </ScrollView>
-    -->
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

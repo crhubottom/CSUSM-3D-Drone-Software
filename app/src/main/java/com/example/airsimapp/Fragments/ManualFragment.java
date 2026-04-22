@@ -5,8 +5,8 @@ import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
-import android.graphics.Matrix;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.os.Build;
 import android.os.Bundle;
@@ -30,9 +30,10 @@ import com.example.airsimapp.Activities.StartupActivity;
 import com.example.airsimapp.Activities.UserActivity;
 import com.example.airsimapp.JoystickView;
 import com.example.airsimapp.R;
-import com.example.airsimapp.WebSocketClientTesting;
 import com.example.airsimapp.p2p.WifiP2pController;
 
+import java.sql.Time;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Locale;
 
@@ -53,6 +54,7 @@ public class ManualFragment extends Fragment implements WifiP2pController.Listen
     private TextView textMotor2;
     private TextView textMotor3;
     private TextView textMotor4;
+
     private int roll = 0;
     private int pitch = 0;
     private int yaw = 0;
@@ -85,6 +87,7 @@ public class ManualFragment extends Fragment implements WifiP2pController.Listen
         textMotor3 = rootView.findViewById(R.id.textMotor3);
         textMotor4 = rootView.findViewById(R.id.textMotor4);
         remoteView = rootView.findViewById(R.id.remoteCameraView);
+
 
         p2p = new WifiP2pController(requireContext(), this);
 
@@ -161,6 +164,7 @@ public class ManualFragment extends Fragment implements WifiP2pController.Listen
                     "\n";
 
             p2p.sendMessage(msg);
+
         }
     }
     @Override
@@ -205,6 +209,7 @@ public class ManualFragment extends Fragment implements WifiP2pController.Listen
         startServer.setEnabled(false);
         startServer.setText("Starting...");
         p2p.createGroup();
+
     }
                         //permission checks
     private boolean hasP2pPermissions() {
@@ -292,20 +297,7 @@ public class ManualFragment extends Fragment implements WifiP2pController.Listen
     }
 
         //needs new implementation
-    private final WebSocketClientTesting.WebSocketImageListener imageListener =
-            bitmap -> requireActivity().runOnUiThread(() -> {
-                if (bitmap != null && isAdded()) {
-                    Matrix matrix = new Matrix();
-                    matrix.postRotate(180);
-                    Bitmap rotated = Bitmap.createBitmap(
-                            bitmap, 0, 0,
-                            bitmap.getWidth(),
-                            bitmap.getHeight(),
-                            matrix, true
-                    );
-                    remoteView.setImageBitmap(rotated);
-                }
-            });
+
 
     @Override
     public void onPeersUpdated(List<WifiP2pDevice> peers) {
@@ -377,6 +369,19 @@ public class ManualFragment extends Fragment implements WifiP2pController.Listen
             }
         }
     }
+
+    @Override
+    public void onCameraBytesReceieved(byte[] data) {
+        if (!isAdded()) return;
+
+        requireActivity().runOnUiThread(() -> {
+            Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
+            if (bitmap != null) {
+                remoteView.setImageBitmap(bitmap);
+            }
+        });
+    }
+
 
     @Override
     public void onSocketConnected(boolean isHost) {
