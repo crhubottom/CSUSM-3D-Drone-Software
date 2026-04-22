@@ -122,7 +122,7 @@ public class AutopilotFragment extends Fragment {
                     .show();
 
             //add autopilot command to the Queue
-            //Todo: fix time entry. As is, fixed at "1000". Need to translate instructions in to drone command
+            //time hardcoded in for now
             autopilot.addToCommandQueue(lat, lon, alt, "1000");
 
         });
@@ -153,7 +153,6 @@ public class AutopilotFragment extends Fragment {
                     .show();
             Log.e("Autopilot", "Heading/Speed triggered");
             //add autopilot command to the Queue
-            //Todo: Need to translate instructions into drone command.
             autopilot.addToCommandQueue(dir, speedText, t);
         });
 
@@ -180,11 +179,11 @@ public class AutopilotFragment extends Fragment {
                     .setNegativeButton("Cancel", null)
                     .show();
 
-            //add autopilot command to the Queue
-            //Todo: fix yawRate, speed, and time entry. As is, fixed at 10, 10, and "1000". Also need to translate into drone commands. UI does not support any real patter, only "pattern 1, 2, 3" etc.
-            //Todo: crashes when trying to add pattern to queue, likely cause "pattern 1, 2 or 3" does not exist
+            //add autopilot command to the Queue, 10, and "1000". Also need to translate into drone commands. UI does not support any real patter, only "pattern 1, 2, 3" etc.
+
+            //yawRate and Speed hardwired in for now
             Log.e("Autopilot", "Pattern triggered: " + pattern);
-            autopilot.addToCommandQueue(pattern, 10, 10, "1000");
+            autopilot.addToCommandQueue(pattern, 10, 10, timePatternText);
         });
         return view;
     }
