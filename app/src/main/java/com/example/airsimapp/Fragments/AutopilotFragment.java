@@ -122,7 +122,7 @@ public class AutopilotFragment extends Fragment {
                     .show();
 
             //add autopilot command to the Queue
-            //time hardcoded in for now
+            //time hardcoded in for now, only affects speed
             autopilot.addToCommandQueue(lat, lon, alt, "1000");
 
         });
