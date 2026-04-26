@@ -381,13 +381,13 @@ public class DronePhoneFragment extends Fragment implements WifiP2pController.Li
     }
 
 
-    private byte[] getSnapshotJpeg() {
+    public byte[] getSnapshotJpeg() {
         synchronized (snapshotLock) {
             return latestSnapshot;
         }
     }
 
-    private void setLatestSnapshot(byte[] jpeg) {
+    public void setLatestSnapshot(byte[] jpeg) {
         synchronized (snapshotLock) {
             latestSnapshot = jpeg;
         }
