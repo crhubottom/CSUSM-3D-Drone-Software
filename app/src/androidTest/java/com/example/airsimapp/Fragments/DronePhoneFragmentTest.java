@@ -527,4 +527,73 @@ public class DronePhoneFragmentTest {
 
 
 
+    @Test
+    public void onError_updatesStatusAndSetsConnectionFalse() throws Exception {
+        ActivityController<FragmentActivity> controller =
+                Robolectric.buildActivity(FragmentActivity.class).setup();
+        FragmentActivity activity = controller.get();
+
+        DronePhoneFragment fragment = new DronePhoneFragment();
+        activity.getSupportFragmentManager()
+                .beginTransaction()
+                .add(fragment, null)
+                .commitNow();
+
+        TextView statusView = new TextView(activity);
+        setField(fragment, "connectionStatus", statusView);
+        setField(fragment, "p2pConnected", true);
+
+        fragment.onError("Connection Failed");
+        Shadows.shadowOf(activity.getMainLooper()).idle();
+
+        assertEquals("Connection Failed", statusView.getText().toString());
+
+        boolean connected = (boolean) getField(fragment, "p2pConnected");
+        assertFalse(connected);
+    }
+
+    @Test
+    public void onError_handlesNullTextView() throws Exception {
+        ActivityController<FragmentActivity> controller =
+                Robolectric.buildActivity(FragmentActivity.class).setup();
+        FragmentActivity activity = controller.get();
+
+        DronePhoneFragment fragment = new DronePhoneFragment();
+        activity.getSupportFragmentManager()
+                .beginTransaction()
+                .add(fragment, null)
+                .commitNow();
+
+        setField(fragment, "connectionStatus", null);
+        setField(fragment, "p2pConnected", true);
+
+        fragment.onError("Error");
+        Shadows.shadowOf(activity.getMainLooper()).idle();
+
+        boolean connected = (boolean) getField(fragment, "p2pConnected");
+        assertFalse(connected);
+    }
+
+    @Test
+    public void onError_doesNothingWhenFragmentNotAdded() throws Exception {
+        DronePhoneFragment fragment = new DronePhoneFragment();
+
+        TextView statusView = new TextView(
+                androidx.test.core.app.ApplicationProvider.getApplicationContext()
+        );
+        statusView.setText("Old");
+
+        setField(fragment, "connectionStatus", statusView);
+        setField(fragment, "p2pConnected", true);
+
+        fragment.onError("New Error");
+
+        // text should NOT change because fragment isn't added
+        assertEquals("Old", statusView.getText().toString());
+
+        boolean connected = (boolean) getField(fragment, "p2pConnected");
+        assertFalse(connected); // still should change
+    }
+
+
 }
