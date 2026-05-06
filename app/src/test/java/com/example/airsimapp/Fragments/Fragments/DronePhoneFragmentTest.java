@@ -1,15 +1,23 @@
-package com.example.airsimapp.Fragments;
-import static org.junit.Assert.assertNull;
+package com.example.airsimapp.Fragments.Fragments;
+
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import android.net.wifi.p2p.WifiP2pDevice;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
 import androidx.fragment.app.FragmentActivity;
 
+import com.example.airsimapp.Fragments.DronePhoneFragment;
 import com.example.airsimapp.PixhawkMavlinkUsb;
 
 import org.junit.Before;
@@ -19,26 +27,13 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.Shadows;
 import org.robolectric.android.controller.ActivityController;
 
 import java.lang.reflect.Field;
-
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
-import static org.mockito.Mockito.spy;
-
-import android.net.wifi.p2p.WifiP2pDevice;
-
-import androidx.test.core.app.ApplicationProvider;
-
-import org.robolectric.Shadows;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import android.widget.ArrayAdapter;
 
 @RunWith(RobolectricTestRunner.class)
 public class DronePhoneFragmentTest {
@@ -293,8 +288,8 @@ public class DronePhoneFragmentTest {
     }
 
 
-    @org.junit.jupiter.api.Test
-    void captureFrameForP2p() {
+    @Test
+    public void captureFrameForP2p() {
         DronePhoneFragment fragment = new DronePhoneFragment();
 
         // here we test that null image should do nothing when snapshot is null

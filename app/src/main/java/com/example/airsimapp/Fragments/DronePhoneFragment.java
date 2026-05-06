@@ -136,7 +136,7 @@ public class DronePhoneFragment extends Fragment implements WifiP2pController.Li
                 }
             }
 
-            cameraHandler.postDelayed(this, 100);
+            cameraHandler.postDelayed(this, 10);
         }
     };
     @Override
@@ -403,6 +403,9 @@ public class DronePhoneFragment extends Fragment implements WifiP2pController.Li
         setLatestSnapshot(jpeg);
     }
 
+
+
+        //translates android camera output to JPEG byte[]
     private byte[] yuvToJpeg(Image image, int quality) {
         int width = image.getWidth();
         int height = image.getHeight();
@@ -521,7 +524,7 @@ public class DronePhoneFragment extends Fragment implements WifiP2pController.Li
 
     @Override
     public void onCameraBytesReceieved(byte[] data) {
-
+                //not used by drone phone
     }
 
 

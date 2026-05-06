@@ -1,12 +1,13 @@
-package com.example.airsimapp.Fragments;
+package com.example.airsimapp.Fragments.Fragments;
+
 import static org.junit.Assert.assertEquals;
 
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
 
 import androidx.fragment.app.FragmentActivity;
 
+import com.example.airsimapp.Fragments.AutopilotFragment;
 import com.example.airsimapp.R;
 
 import org.junit.Test;
@@ -18,13 +19,11 @@ import org.robolectric.Shadows;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.shadows.ShadowToast;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 @RunWith(Enclosed.class)
-class AutopilotFragmentTest {
+public class AutopilotFragmentTest {
 
     @RunWith(RobolectricTestRunner.class)
-    public static class AutopilotFragmentTest {
+    public static class AutopilotFragmentTests {
 
         @Test
         public void gpsButton_emptyFields_showsToast() {
