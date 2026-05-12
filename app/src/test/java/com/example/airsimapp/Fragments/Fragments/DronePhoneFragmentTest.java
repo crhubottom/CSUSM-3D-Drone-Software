@@ -20,6 +20,7 @@ import androidx.fragment.app.FragmentActivity;
 import com.example.airsimapp.Fragments.DronePhoneFragment;
 import com.example.airsimapp.PixhawkMavlinkUsb;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -41,16 +42,14 @@ public class DronePhoneFragmentTest {
     private DronePhoneFragment fragment;
     private FragmentActivity activity;
     private TextView outputView;
-
+    private ActivityController<FragmentActivity> controller;
     @Mock
     private PixhawkMavlinkUsb mockPixhawk;
-
+    private AutoCloseable mocks;
     @Before
     public void setUp() throws Exception {
-        MockitoAnnotations.openMocks(this);
-
-        ActivityController<FragmentActivity> controller =
-                Robolectric.buildActivity(FragmentActivity.class).setup();
+        mocks = MockitoAnnotations.openMocks(this);
+        controller = Robolectric.buildActivity(FragmentActivity.class).setup();
         activity = controller.get();
 
         fragment = new DronePhoneFragment();
@@ -65,7 +64,17 @@ public class DronePhoneFragmentTest {
         setPrivateField(fragment, "pixhawk", mockPixhawk);
         setPrivateField(fragment, "output", outputView);
     }
-
+    @After
+    public void tearDown() throws Exception {
+        if (controller != null) {
+            controller.pause().stop().destroy();
+            controller = null;
+        }
+        if (mocks != null) {
+            mocks.close();
+            mocks = null;
+        }
+    }
     @Test
     public void onMessageReceived_validCtrlPacket_updatesPixhawkAndOutput() {
         when(mockPixhawk.isArmed()).thenReturn(false);
@@ -310,111 +319,126 @@ public class DronePhoneFragmentTest {
 
     @Test
     public void onPeersUpdated_updatesPeerNamesAndNotifiesAdapter() throws Exception {
-        ActivityController<FragmentActivity> controller =
+        ActivityController<FragmentActivity> localController =
                 Robolectric.buildActivity(FragmentActivity.class).setup();
-        FragmentActivity activity = controller.get();
 
-        DronePhoneFragment fragment = new DronePhoneFragment();
-        activity.getSupportFragmentManager()
-                .beginTransaction()
-                .add(fragment, null)
-                .commitNow();
+        try {
+            FragmentActivity activity = localController.get();
 
-        ArrayAdapter<String> adapter = spy(new ArrayAdapter<>(
-                activity,
-                android.R.layout.simple_list_item_1,
-                new ArrayList<>()
-        ));
+            DronePhoneFragment fragment = new DronePhoneFragment();
+            activity.getSupportFragmentManager()
+                    .beginTransaction()
+                    .add(fragment, null)
+                    .commitNow();
 
-        setField(fragment, "peerAdapter", adapter);
+            ArrayAdapter<String> adapter = spy(new ArrayAdapter<>(
+                    activity,
+                    android.R.layout.simple_list_item_1,
+                    new ArrayList<>()
+            ));
 
-        List<WifiP2pDevice> peers = new ArrayList<>();
+            setField(fragment, "peerAdapter", adapter);
 
-        WifiP2pDevice d1 = new WifiP2pDevice();
-        d1.deviceName = "PhoneA";
-        d1.deviceAddress = "AA:BB:CC:DD:EE:01";
+            List<WifiP2pDevice> peers = new ArrayList<>();
 
-        WifiP2pDevice d2 = new WifiP2pDevice();
-        d2.deviceName = "PhoneB";
-        d2.deviceAddress = "AA:BB:CC:DD:EE:02";
+            WifiP2pDevice d1 = new WifiP2pDevice();
+            d1.deviceName = "PhoneA";
+            d1.deviceAddress = "AA:BB:CC:DD:EE:01";
 
-        peers.add(d1);
-        peers.add(d2);
+            WifiP2pDevice d2 = new WifiP2pDevice();
+            d2.deviceName = "PhoneB";
+            d2.deviceAddress = "AA:BB:CC:DD:EE:02";
 
-        fragment.onPeersUpdated(peers);
-        Shadows.shadowOf(activity.getMainLooper()).idle();
+            peers.add(d1);
+            peers.add(d2);
 
-        List<String> peerNames = getPeerNames(fragment);
+            fragment.onPeersUpdated(peers);
+            Shadows.shadowOf(activity.getMainLooper()).idle();
 
-        assertEquals(2, peerNames.size());
-        assertEquals("PhoneA\nAA:BB:CC:DD:EE:01", peerNames.get(0));
-        assertEquals("PhoneB\nAA:BB:CC:DD:EE:02", peerNames.get(1));
+            List<String> peerNames = getPeerNames(fragment);
 
-        verify(adapter).notifyDataSetChanged();
+            assertEquals(2, peerNames.size());
+            assertEquals("PhoneA\nAA:BB:CC:DD:EE:01", peerNames.get(0));
+            assertEquals("PhoneB\nAA:BB:CC:DD:EE:02", peerNames.get(1));
+
+            verify(adapter).notifyDataSetChanged();
+        } finally {
+            localController.pause().stop().destroy();
+        }
     }
     @Test
     public void onPeersUpdated_clearsOldPeerNamesBeforeAddingNewOnes() throws Exception {
-        ActivityController<FragmentActivity> controller =
+        ActivityController<FragmentActivity> localController =
                 Robolectric.buildActivity(FragmentActivity.class).setup();
-        FragmentActivity activity = controller.get();
 
-        DronePhoneFragment fragment = new DronePhoneFragment();
-        activity.getSupportFragmentManager()
-                .beginTransaction()
-                .add(fragment, null)
-                .commitNow();
+        try {
+            FragmentActivity activity = localController.get();
 
-        ArrayAdapter<String> adapter = spy(new ArrayAdapter<>(
-                activity,
-                android.R.layout.simple_list_item_1,
-                new ArrayList<>()
-        ));
+            DronePhoneFragment fragment = new DronePhoneFragment();
+            activity.getSupportFragmentManager()
+                    .beginTransaction()
+                    .add(fragment, null)
+                    .commitNow();
 
-        setField(fragment, "peerAdapter", adapter);
+            ArrayAdapter<String> adapter = spy(new ArrayAdapter<>(
+                    activity,
+                    android.R.layout.simple_list_item_1,
+                    new ArrayList<>()
+            ));
 
-        List<String> peerNames = getPeerNames(fragment);
-        peerNames.add("OldDevice\n11:11:11:11:11:11");
+            setField(fragment, "peerAdapter", adapter);
 
-        WifiP2pDevice d1 = new WifiP2pDevice();
-        d1.deviceName = "NewDevice";
-        d1.deviceAddress = "22:22:22:22:22:22";
+            List<String> peerNames = getPeerNames(fragment);
+            peerNames.add("OldDevice\n11:11:11:11:11:11");
 
-        fragment.onPeersUpdated(Arrays.asList(d1));
-        Shadows.shadowOf(activity.getMainLooper()).idle();
+            WifiP2pDevice d1 = new WifiP2pDevice();
+            d1.deviceName = "NewDevice";
+            d1.deviceAddress = "22:22:22:22:22:22";
 
-        assertEquals(1, peerNames.size());
-        assertEquals("NewDevice\n22:22:22:22:22:22", peerNames.get(0));
+            fragment.onPeersUpdated(Arrays.asList(d1));
+            Shadows.shadowOf(activity.getMainLooper()).idle();
 
-        verify(adapter).notifyDataSetChanged();
+            assertEquals(1, peerNames.size());
+            assertEquals("NewDevice\n22:22:22:22:22:22", peerNames.get(0));
+
+            verify(adapter).notifyDataSetChanged();
+        } finally {
+            localController.pause().stop().destroy();
+        }
     }
     @Test
     public void onPeersUpdated_handlesEmptyPeerList() throws Exception {
-        ActivityController<FragmentActivity> controller =
+        ActivityController<FragmentActivity> localController =
                 Robolectric.buildActivity(FragmentActivity.class).setup();
-        FragmentActivity activity = controller.get();
 
-        DronePhoneFragment fragment = new DronePhoneFragment();
-        activity.getSupportFragmentManager()
-                .beginTransaction()
-                .add(fragment, null)
-                .commitNow();
+        try {
+            FragmentActivity activity = localController.get();
 
-        ArrayAdapter<String> adapter = spy(new ArrayAdapter<>(
-                activity,
-                android.R.layout.simple_list_item_1,
-                new ArrayList<>()
-        ));
+            DronePhoneFragment fragment = new DronePhoneFragment();
+            activity.getSupportFragmentManager()
+                    .beginTransaction()
+                    .add(fragment, null)
+                    .commitNow();
 
-        setField(fragment, "peerAdapter", adapter);
+            ArrayAdapter<String> adapter = spy(new ArrayAdapter<>(
+                    activity,
+                    android.R.layout.simple_list_item_1,
+                    new ArrayList<>()
+            ));
 
-        List<String> peerNames = getPeerNames(fragment);
-        peerNames.add("SomethingOld\n00:00:00:00:00:00");
+            setField(fragment, "peerAdapter", adapter);
 
-        fragment.onPeersUpdated(new ArrayList<>());
-        Shadows.shadowOf(activity.getMainLooper()).idle();
+            List<String> peerNames = getPeerNames(fragment);
+            peerNames.add("SomethingOld\n00:00:00:00:00:00");
 
-        assertTrue(peerNames.isEmpty());
-        verify(adapter).notifyDataSetChanged();
+            fragment.onPeersUpdated(new ArrayList<>());
+            Shadows.shadowOf(activity.getMainLooper()).idle();
+
+            assertTrue(peerNames.isEmpty());
+            verify(adapter).notifyDataSetChanged();
+        } finally {
+            localController.pause().stop().destroy();
+        }
     }
     @Test
     public void onPeersUpdated_doesNothingWhenFragmentNotAdded() throws Exception {
@@ -458,43 +482,53 @@ public class DronePhoneFragmentTest {
 
     @Test
     public void onConnectionStatusChanged_updatesTextViewWhenAdded() throws Exception {
-        ActivityController<FragmentActivity> controller =
+        ActivityController<FragmentActivity> localController =
                 Robolectric.buildActivity(FragmentActivity.class).setup();
-        FragmentActivity activity = controller.get();
 
-        DronePhoneFragment fragment = new DronePhoneFragment();
-        activity.getSupportFragmentManager()
-                .beginTransaction()
-                .add(fragment, null)
-                .commitNow();
+        try {
+            FragmentActivity activity = localController.get();
 
-        TextView statusView = new TextView(activity);
-        setField(fragment, "connectionStatus", statusView);
+            DronePhoneFragment fragment = new DronePhoneFragment();
+            activity.getSupportFragmentManager()
+                    .beginTransaction()
+                    .add(fragment, null)
+                    .commitNow();
 
-        fragment.onConnectionStatusChanged("Connected");
-        Shadows.shadowOf(activity.getMainLooper()).idle();
+            TextView statusView = new TextView(activity);
+            setField(fragment, "connectionStatus", statusView);
 
-        assertEquals("Connected", statusView.getText().toString());
+            fragment.onConnectionStatusChanged("Connected");
+            Shadows.shadowOf(activity.getMainLooper()).idle();
+
+            assertEquals("Connected", statusView.getText().toString());
+        } finally {
+            localController.pause().stop().destroy();
+        }
     }
 
     @Test
     public void onConnectionStatusChanged_handlesNullTextViewWithoutCrash() throws Exception {
-        ActivityController<FragmentActivity> controller =
+        ActivityController<FragmentActivity> localController =
                 Robolectric.buildActivity(FragmentActivity.class).setup();
-        FragmentActivity activity = controller.get();
 
-        DronePhoneFragment fragment = new DronePhoneFragment();
-        activity.getSupportFragmentManager()
-                .beginTransaction()
-                .add(fragment, null)
-                .commitNow();
+        try {
+            FragmentActivity activity = localController.get();
 
-        setField(fragment, "connectionStatus", null);
+            DronePhoneFragment fragment = new DronePhoneFragment();
+            activity.getSupportFragmentManager()
+                    .beginTransaction()
+                    .add(fragment, null)
+                    .commitNow();
 
-        fragment.onConnectionStatusChanged("Disconnected");
-        Shadows.shadowOf(activity.getMainLooper()).idle();
+            setField(fragment, "connectionStatus", null);
 
-        assertNull(getField(fragment, "connectionStatus"));
+            fragment.onConnectionStatusChanged("Disconnected");
+            Shadows.shadowOf(activity.getMainLooper()).idle();
+
+            assertNull(getField(fragment, "connectionStatus"));
+        } finally {
+            localController.pause().stop().destroy();
+        }
     }
 
     @Test
@@ -524,49 +558,59 @@ public class DronePhoneFragmentTest {
 
     @Test
     public void onError_updatesStatusAndSetsConnectionFalse() throws Exception {
-        ActivityController<FragmentActivity> controller =
+        ActivityController<FragmentActivity> localController =
                 Robolectric.buildActivity(FragmentActivity.class).setup();
-        FragmentActivity activity = controller.get();
 
-        DronePhoneFragment fragment = new DronePhoneFragment();
-        activity.getSupportFragmentManager()
-                .beginTransaction()
-                .add(fragment, null)
-                .commitNow();
+        try {
+            FragmentActivity activity = localController.get();
 
-        TextView statusView = new TextView(activity);
-        setField(fragment, "connectionStatus", statusView);
-        setField(fragment, "p2pConnected", true);
+            DronePhoneFragment fragment = new DronePhoneFragment();
+            activity.getSupportFragmentManager()
+                    .beginTransaction()
+                    .add(fragment, null)
+                    .commitNow();
 
-        fragment.onError("Connection Failed");
-        Shadows.shadowOf(activity.getMainLooper()).idle();
+            TextView statusView = new TextView(activity);
+            setField(fragment, "connectionStatus", statusView);
+            setField(fragment, "p2pConnected", true);
 
-        assertEquals("Connection Failed", statusView.getText().toString());
+            fragment.onError("Connection Failed");
+            Shadows.shadowOf(activity.getMainLooper()).idle();
 
-        boolean connected = (boolean) getField(fragment, "p2pConnected");
-        assertFalse(connected);
+            assertEquals("Connection Failed", statusView.getText().toString());
+
+            boolean connected = (boolean) getField(fragment, "p2pConnected");
+            assertFalse(connected);
+        } finally {
+            localController.pause().stop().destroy();
+        }
     }
 
     @Test
     public void onError_handlesNullTextView() throws Exception {
-        ActivityController<FragmentActivity> controller =
+        ActivityController<FragmentActivity> localController =
                 Robolectric.buildActivity(FragmentActivity.class).setup();
-        FragmentActivity activity = controller.get();
 
-        DronePhoneFragment fragment = new DronePhoneFragment();
-        activity.getSupportFragmentManager()
-                .beginTransaction()
-                .add(fragment, null)
-                .commitNow();
+        try {
+            FragmentActivity activity = localController.get();
 
-        setField(fragment, "connectionStatus", null);
-        setField(fragment, "p2pConnected", true);
+            DronePhoneFragment fragment = new DronePhoneFragment();
+            activity.getSupportFragmentManager()
+                    .beginTransaction()
+                    .add(fragment, null)
+                    .commitNow();
 
-        fragment.onError("Error");
-        Shadows.shadowOf(activity.getMainLooper()).idle();
+            setField(fragment, "connectionStatus", null);
+            setField(fragment, "p2pConnected", true);
 
-        boolean connected = (boolean) getField(fragment, "p2pConnected");
-        assertFalse(connected);
+            fragment.onError("Error");
+            Shadows.shadowOf(activity.getMainLooper()).idle();
+
+            boolean connected = (boolean) getField(fragment, "p2pConnected");
+            assertFalse(connected);
+        } finally {
+            localController.pause().stop().destroy();
+        }
     }
 
     @Test

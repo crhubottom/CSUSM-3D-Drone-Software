@@ -29,75 +29,87 @@ public class AutopilotFragmentTest {
         public void gpsButton_emptyFields_showsToast() {
             ActivityController<FragmentActivity> controller =
                     Robolectric.buildActivity(FragmentActivity.class).setup();
-            FragmentActivity activity = controller.get();
 
-            AutopilotFragment fragment = new AutopilotFragment();
-            activity.getSupportFragmentManager()
-                    .beginTransaction()
-                    .add(fragment, null)
-                    .commitNow();
+            try {
+                FragmentActivity activity = controller.get();
 
-            View view = fragment.requireView();
+                AutopilotFragment fragment = new AutopilotFragment();
+                activity.getSupportFragmentManager()
+                        .beginTransaction()
+                        .add(fragment, null)
+                        .commitNow();
 
-            Button gpsButton = view.findViewById(R.id.GPSButton);
+                View view = fragment.requireView();
+                Button gpsButton = view.findViewById(R.id.GPSButton);
 
-            gpsButton.performClick();
-            Shadows.shadowOf(activity.getMainLooper()).idle();
+                gpsButton.performClick();
+                Shadows.shadowOf(activity.getMainLooper()).idle();
 
-            assertEquals(
-                    "Please fill in all GPS coordinates",
-                    ShadowToast.getTextOfLatestToast()
-            );
+                assertEquals(
+                        "Please fill in all GPS coordinates",
+                        ShadowToast.getTextOfLatestToast()
+                );
+            } finally {
+                controller.pause().stop().destroy();
+            }
         }
 
         @Test
         public void headingButton_emptyFields_showsToast() {
             ActivityController<FragmentActivity> controller =
                     Robolectric.buildActivity(FragmentActivity.class).setup();
-            FragmentActivity activity = controller.get();
 
-            AutopilotFragment fragment = new AutopilotFragment();
-            activity.getSupportFragmentManager()
-                    .beginTransaction()
-                    .add(fragment, null)
-                    .commitNow();
+            try {
+                FragmentActivity activity = controller.get();
 
-            View view = fragment.requireView();
+                AutopilotFragment fragment = new AutopilotFragment();
+                activity.getSupportFragmentManager()
+                        .beginTransaction()
+                        .add(fragment, null)
+                        .commitNow();
 
-            Button headingButton = view.findViewById(R.id.headingButton);
+                View view = fragment.requireView();
+                Button headingButton = view.findViewById(R.id.headingButton);
 
-            headingButton.performClick();
-            Shadows.shadowOf(activity.getMainLooper()).idle();
+                headingButton.performClick();
+                Shadows.shadowOf(activity.getMainLooper()).idle();
 
-            assertEquals(
-                    "Please fill in all Heading/Speed instructions",
-                    ShadowToast.getTextOfLatestToast()
-            );
+                assertEquals(
+                        "Please fill in all Heading/Speed instructions",
+                        ShadowToast.getTextOfLatestToast()
+                );
+            } finally {
+                controller.pause().stop().destroy();
+            }
         }
 
         @Test
         public void patternButton_emptyFields_showsToast() {
             ActivityController<FragmentActivity> controller =
                     Robolectric.buildActivity(FragmentActivity.class).setup();
-            FragmentActivity activity = controller.get();
 
-            AutopilotFragment fragment = new AutopilotFragment();
-            activity.getSupportFragmentManager()
-                    .beginTransaction()
-                    .add(fragment, null)
-                    .commitNow();
+            try {
+                FragmentActivity activity = controller.get();
 
-            View view = fragment.requireView();
+                AutopilotFragment fragment = new AutopilotFragment();
+                activity.getSupportFragmentManager()
+                        .beginTransaction()
+                        .add(fragment, null)
+                        .commitNow();
 
-            Button patternButton = view.findViewById(R.id.patternButton);
+                View view = fragment.requireView();
+                Button patternButton = view.findViewById(R.id.patternButton);
 
-            patternButton.performClick();
-            Shadows.shadowOf(activity.getMainLooper()).idle();
+                patternButton.performClick();
+                Shadows.shadowOf(activity.getMainLooper()).idle();
 
-            assertEquals(
-                    "Please fill in all Pattern instructions",
-                    ShadowToast.getTextOfLatestToast()
-            );
+                assertEquals(
+                        "Please fill in all Pattern instructions",
+                        ShadowToast.getTextOfLatestToast()
+                );
+            } finally {
+                controller.pause().stop().destroy();
+            }
         }
     }
 }
