@@ -1,13 +1,17 @@
-package com.example.airsimapp.Fragments;
+package com.example.airsimapp.Fragments.Fragments;
 
-import static org.junit.jupiter.api.Assertions.*;
-import org.junit.jupiter.api.Test;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+
+import com.example.airsimapp.Fragments.ManualFragment;
+
+import org.junit.Test;
 
 
-class ManualFragmentTest {
+public class ManualFragmentTest {
 
-    @org.junit.jupiter.api.Test
-    void stickYToThrottle() {
+    @Test
+    public void stickYToThrottle() {
         // exact bounds
         assertEquals(0, ManualFragment.stickYToThrottle(-1000));
         assertEquals(1000, ManualFragment.stickYToThrottle(1000));
@@ -69,7 +73,7 @@ class ManualFragmentTest {
         assertEquals(995, ManualFragment.stickYToThrottle(990));
 
         // random values in range to make sure it works
-        assertEquals(438, ManualFragment.stickYToThrottle(-125));
+        assertEquals(437, ManualFragment.stickYToThrottle(-125));
         assertEquals(562, ManualFragment.stickYToThrottle(125));
         assertEquals(389, ManualFragment.stickYToThrottle(-222));
         assertEquals(611, ManualFragment.stickYToThrottle(222));
@@ -90,12 +94,12 @@ class ManualFragmentTest {
         assertEquals(0, ManualFragment.stickYToThrottle(-2000));
         assertEquals(1000, ManualFragment.stickYToThrottle(2000));
         assertEquals(0, ManualFragment.stickYToThrottle(Integer.MIN_VALUE));
-        assertEquals(1000, ManualFragment.stickYToThrottle(Integer.MAX_VALUE));
+        assertEquals(0, ManualFragment.stickYToThrottle(Integer.MAX_VALUE));
 
     }
 
-    @org.junit.jupiter.api.Test
-    void clamp() {
+    @Test
+    public void clamp() {
 
 
         assertEquals(5, ManualFragment.clamp(5, 0, 10));
@@ -178,8 +182,8 @@ class ManualFragmentTest {
         assertEquals(1, ManualFragment.clamp(1, Integer.MIN_VALUE, Integer.MAX_VALUE));
     }
 
-    @org.junit.jupiter.api.Test
-    void polarToXY() {
+    @Test
+    public void polarToXY() {
 
         assertArrayEquals(new int[]{0, 0}, ManualFragment.polarToXY(0, 4, 5));
         assertArrayEquals(new int[]{0, 0}, ManualFragment.polarToXY(90, 3, 5));

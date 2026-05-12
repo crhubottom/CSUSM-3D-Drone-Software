@@ -1,14 +1,23 @@
-package com.example.airsimapp.Fragments;
+package com.example.airsimapp.Fragments.Fragments;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import android.net.wifi.p2p.WifiP2pDevice;
+import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
 import androidx.fragment.app.FragmentActivity;
 
+import com.example.airsimapp.Fragments.DronePhoneFragment;
 import com.example.airsimapp.PixhawkMavlinkUsb;
 
 import org.junit.Before;
@@ -18,23 +27,10 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.Shadows;
 import org.robolectric.android.controller.ActivityController;
 
 import java.lang.reflect.Field;
-
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-
-import static org.mockito.Mockito.spy;
-
-import android.net.wifi.p2p.WifiP2pDevice;
-
-import androidx.test.core.app.ApplicationProvider;
-
-import org.robolectric.Shadows;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -214,16 +210,7 @@ public class DronePhoneFragmentTest {
         field.set(target, value);
     }
 
-    /*
-    @org.junit.jupiter.api.Test
-    void getSnapshotJpeg() {
-    }
 
-    @org.junit.jupiter.api.Test
-    void setLatestSnapshot() {
-    }
-
-    */
 
     @Test
     public void getSnapshotJpeg_returnsNullInitially() {
@@ -301,8 +288,8 @@ public class DronePhoneFragmentTest {
     }
 
 
-    @org.junit.jupiter.api.Test
-    void captureFrameForP2p() {
+    @Test
+    public void captureFrameForP2p() {
         DronePhoneFragment fragment = new DronePhoneFragment();
 
         // here we test that null image should do nothing when snapshot is null
@@ -320,11 +307,7 @@ public class DronePhoneFragmentTest {
         assertSame(original, fragment.getSnapshotJpeg());
     }
 
-    /*
-    @org.junit.jupiter.api.Test
-    void onPeersUpdated() {
-    }
-    */
+
     @Test
     public void onPeersUpdated_updatesPeerNamesAndNotifiesAdapter() throws Exception {
         ActivityController<FragmentActivity> controller =
@@ -471,4 +454,141 @@ public class DronePhoneFragmentTest {
         field.setAccessible(true);
         return (List<String>) field.get(fragment);
     }
+
+
+    @Test
+    public void onConnectionStatusChanged_updatesTextViewWhenAdded() throws Exception {
+        ActivityController<FragmentActivity> controller =
+                Robolectric.buildActivity(FragmentActivity.class).setup();
+        FragmentActivity activity = controller.get();
+
+        DronePhoneFragment fragment = new DronePhoneFragment();
+        activity.getSupportFragmentManager()
+                .beginTransaction()
+                .add(fragment, null)
+                .commitNow();
+
+        TextView statusView = new TextView(activity);
+        setField(fragment, "connectionStatus", statusView);
+
+        fragment.onConnectionStatusChanged("Connected");
+        Shadows.shadowOf(activity.getMainLooper()).idle();
+
+        assertEquals("Connected", statusView.getText().toString());
+    }
+
+    @Test
+    public void onConnectionStatusChanged_handlesNullTextViewWithoutCrash() throws Exception {
+        ActivityController<FragmentActivity> controller =
+                Robolectric.buildActivity(FragmentActivity.class).setup();
+        FragmentActivity activity = controller.get();
+
+        DronePhoneFragment fragment = new DronePhoneFragment();
+        activity.getSupportFragmentManager()
+                .beginTransaction()
+                .add(fragment, null)
+                .commitNow();
+
+        setField(fragment, "connectionStatus", null);
+
+        fragment.onConnectionStatusChanged("Disconnected");
+        Shadows.shadowOf(activity.getMainLooper()).idle();
+
+        assertNull(getField(fragment, "connectionStatus"));
+    }
+
+    @Test
+    public void onConnectionStatusChanged_doesNothingWhenFragmentNotAdded() throws Exception {
+        DronePhoneFragment fragment = new DronePhoneFragment();
+
+        TextView statusView = new TextView(
+                androidx.test.core.app.ApplicationProvider.getApplicationContext()
+        );
+        statusView.setText("Old Status");
+
+        setField(fragment, "connectionStatus", statusView);
+
+        fragment.onConnectionStatusChanged("New Status");
+
+        assertEquals("Old Status", statusView.getText().toString());
+    }
+
+
+    private Object getField(Object target, String fieldName) throws Exception {
+        Field field = target.getClass().getDeclaredField(fieldName);
+        field.setAccessible(true);
+        return field.get(target);
+    }
+
+
+
+    @Test
+    public void onError_updatesStatusAndSetsConnectionFalse() throws Exception {
+        ActivityController<FragmentActivity> controller =
+                Robolectric.buildActivity(FragmentActivity.class).setup();
+        FragmentActivity activity = controller.get();
+
+        DronePhoneFragment fragment = new DronePhoneFragment();
+        activity.getSupportFragmentManager()
+                .beginTransaction()
+                .add(fragment, null)
+                .commitNow();
+
+        TextView statusView = new TextView(activity);
+        setField(fragment, "connectionStatus", statusView);
+        setField(fragment, "p2pConnected", true);
+
+        fragment.onError("Connection Failed");
+        Shadows.shadowOf(activity.getMainLooper()).idle();
+
+        assertEquals("Connection Failed", statusView.getText().toString());
+
+        boolean connected = (boolean) getField(fragment, "p2pConnected");
+        assertFalse(connected);
+    }
+
+    @Test
+    public void onError_handlesNullTextView() throws Exception {
+        ActivityController<FragmentActivity> controller =
+                Robolectric.buildActivity(FragmentActivity.class).setup();
+        FragmentActivity activity = controller.get();
+
+        DronePhoneFragment fragment = new DronePhoneFragment();
+        activity.getSupportFragmentManager()
+                .beginTransaction()
+                .add(fragment, null)
+                .commitNow();
+
+        setField(fragment, "connectionStatus", null);
+        setField(fragment, "p2pConnected", true);
+
+        fragment.onError("Error");
+        Shadows.shadowOf(activity.getMainLooper()).idle();
+
+        boolean connected = (boolean) getField(fragment, "p2pConnected");
+        assertFalse(connected);
+    }
+
+    @Test
+    public void onError_doesNothingWhenFragmentNotAdded() throws Exception {
+        DronePhoneFragment fragment = new DronePhoneFragment();
+
+        TextView statusView = new TextView(
+                androidx.test.core.app.ApplicationProvider.getApplicationContext()
+        );
+        statusView.setText("Old");
+
+        setField(fragment, "connectionStatus", statusView);
+        setField(fragment, "p2pConnected", true);
+
+        fragment.onError("New Error");
+
+        // text should NOT change because fragment isn't added
+        assertEquals("Old", statusView.getText().toString());
+
+        boolean connected = (boolean) getField(fragment, "p2pConnected");
+        assertFalse(connected); // still should change
+    }
+
+
 }

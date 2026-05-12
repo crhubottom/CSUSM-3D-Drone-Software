@@ -277,18 +277,18 @@ public class ManualFragment extends Fragment implements WifiP2pController.Listen
 
 
     //left joystick up/down is throttle only
-    static int stickYToThrottle(int y) {
+    public static int stickYToThrottle(int y) {
         int t = (y + 1000) / 2;
         return clamp(t, 0, 1000);
     }
     //helper method for polarToXY
-    static int clamp(int v, int lo, int hi) {
+    public static int clamp(int v, int lo, int hi) {
         return Math.max(lo, Math.min(hi, v));
     }
 
 
             //changes on screen joystick outputs (-180-180) to Mavlink inputs (-1000-1000)
-    static int[] polarToXY(double angleDeg, double strength, int deadzone) {
+    public static int[] polarToXY(double angleDeg, double strength, int deadzone) {
         if (strength < deadzone) strength = 0;
 
         double mag = clamp((int) Math.round(strength), 0, 100) / 100.0;
